@@ -12,7 +12,7 @@
     <div class="container">
       <div class="header-banner">
         <div class="label">资产总计 (元)</div>
-        <div class="amount">{{ accountStore.totalNetAsset.toFixed(2) }}</div>
+        <div class="amount">{{ accountStore.privacyMode ? '****' : accountStore.totalNetAsset.toFixed(2) }}</div>
       </div>
       
       <div class="section">
@@ -40,7 +40,7 @@
             </template>
             <template #right-icon>
               <span class="balance" :class="{'is-debt': acc.balance < 0}">
-                ¥ {{ acc.balance.toFixed(2) }}
+                ¥ {{ accountStore.privacyMode ? '****' : acc.balance.toFixed(2) }}
               </span>
             </template>
           </van-cell>

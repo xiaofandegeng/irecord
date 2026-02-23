@@ -34,6 +34,11 @@ const routes: Array<RouteRecordRaw> = [
         path: '/account-manage',
         name: 'AccountManage',
         component: () => import('@/pages/account/account-manage.vue')
+    },
+    {
+        path: '/search',
+        name: 'Search',
+        component: () => import('@/pages/search/search-index.vue')
     }
 ]
 

@@ -1,25 +1,33 @@
 <template>
   <div class="detail-container">
     <div class="header">
-      <div class="title">账单明细</div>
+      <div class="title-bar">
+        <div class="title">账单明细</div>
+        <div class="actions">
+          <van-icon :name="viewMode === 'list' ? 'calendar-o' : 'orders-o'" size="22" class="action-icon" @click="toggleViewMode" />
+          <van-icon name="search" size="22" class="action-icon" @click="goSearch" />
+        </div>
+      </div>
       <div class="summary">
         <div class="item">
           <span class="label">总支出</span>
-          <span class="value">¥ {{ totalExpense.toFixed(2) }}</span>
+          <span class="value">¥ {{ accountStore.privacyMode ? '****' : totalExpense.toFixed(2) }}</span>
         </div>
         <div class="item">
           <span class="label">总收入</span>
-          <span class="value">¥ {{ totalIncome.toFixed(2) }}</span>
+          <span class="value">¥ {{ accountStore.privacyMode ? '****' : totalIncome.toFixed(2) }}</span>
         </div>
       </div>
     </div>
 
-    <div class="list-area">
+    <!-- 列表视图 -->
+    <div class="list-area" v-if="viewMode === 'list'">
       <transition-group name="list" tag="div" class="list-wrapper" v-if="Object.keys(groupedRecords).length > 0">
         <div v-for="(records, dateKey) in groupedRecords" :key="dateKey" class="date-group">
           <div class="date-header">
             <span class="date">{{ formatHeaderDate(dateKey) }}</span>
-            <span class="daily-sum">{{ getDailySum(records) }}</span>
+            <span class="daily-sum" v-if="accountStore.privacyMode">****</span>
+            <span class="daily-sum" v-else>{{ getDailySum(records) }}</span>
           </div>
           
           <transition-group name="list" tag="div" class="record-list">
@@ -32,7 +40,7 @@
                   <div class="top-line">
                     <span class="name">{{ getCategoryName(record.categoryId) }}</span>
                     <span class="amount" :class="{'is-income': record.type === 2}">
-                      {{ record.type === 1 ? '-' : '+' }}{{ record.amount.toFixed(2) }}
+                      {{ record.type === 1 ? '-' : '+' }}{{ accountStore.privacyMode ? '****' : record.amount.toFixed(2) }}
                     </span>
                   </div>
                   <div class="bottom-line" v-if="record.remark || record.recordTime">
@@ -53,15 +61,42 @@
         <van-empty description="暂无账单数据" />
       </div>
     </div>
+
+    <!-- 日历视图 -->
+    <div class="calendar-area" v-else>
+      <van-calendar
+        title="收支日历"
+        :poppable="false"
+        :show-confirm="false"
+        :formatter="calendarFormatter"
+        class="custom-calendar"
+        :min-date="minDate"
+        :max-date="maxDate"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { showConfirmDialog } from 'vant'
 import { useRecordStore, type RecordItem } from '@/stores/record'
+import { useAccountStore } from '@/stores/account'
 
 const store = useRecordStore()
+const accountStore = useAccountStore()
+const router = useRouter()
+
+const viewMode = ref<'list' | 'calendar'>('list')
+
+const toggleViewMode = () => {
+  viewMode.value = viewMode.value === 'list' ? 'calendar' : 'list'
+}
+
+const goSearch = () => {
+  router.push('/search')
+}
 
 // 取所有记账记录
 const allRecords = computed(() => store.records)
@@ -88,7 +123,6 @@ const totalIncome = computed(() => {
 const groupedRecords = computed(() => {
   const groups: Record<string, RecordItem[]> = {}
   
-  // records 因为是在 unshift 插入的，所以直接按原本顺序遍历即可
   allRecords.value.forEach(record => {
     const d = new Date(record.recordTime)
     const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -135,6 +169,45 @@ const onDelete = (id: string) => {
     store.deleteRecord(id)
   }).catch(() => {})
 }
+
+// ================= 日历相关 ================= //
+// 日历的可选范围：向前一年到今天
+const minDate = new Date()
+minDate.setFullYear(minDate.getFullYear() - 1)
+const maxDate = new Date()
+
+// 提供给日历组件的格式化函数（渲染每天底部的小字说明）
+const calendarFormatter = (day: any) => {
+  const d = day.date as Date
+  if (!d) return day
+
+  const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const recordsForDay = groupedRecords.value[dateKey]
+
+  if (recordsForDay && recordsForDay.length > 0) {
+    let exp = 0
+    let inc = 0
+    recordsForDay.forEach(r => {
+      if (r.type === 1) exp += r.amount
+      else inc += r.amount
+    })
+    
+    // 我们用 bottomInfo 显示每天的主导收支。支出较多则标红，收入较多标绿
+    if (accountStore.privacyMode) {
+      day.bottomInfo = '****'
+    } else if (exp > inc) {
+      day.bottomInfo = `-${exp.toFixed(0)}`
+      day.className = 'calendar-expense-day'
+    } else if (inc > exp) {
+      day.bottomInfo = `+${inc.toFixed(0)}`
+      day.className = 'calendar-income-day'
+    } else {
+      day.bottomInfo = '0'
+    }
+  }
+
+  return day
+}
 </script>
 
 <style lang="scss" scoped>
@@ -148,11 +221,29 @@ const onDelete = (id: string) => {
     background-color: var(--van-primary-color);
     color: #fff;
     
-    .title {
-      font-size: 18px;
-      font-weight: 500;
+    .title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
       margin-bottom: 16px;
-      text-align: center;
+      
+      .title {
+        font-size: 18px;
+        font-weight: 500;
+      }
+      
+      .actions {
+        position: absolute;
+        right: 0;
+        display: flex;
+        gap: 16px;
+        
+        .action-icon {
+          // padding to make it easier to click
+          padding: 4px;
+        }
+      }
     }
     
     .summary {
@@ -257,6 +348,28 @@ const onDelete = (id: string) => {
     
     .delete-button {
       height: 100%;
+    }
+  }
+
+  .calendar-area {
+    flex: 1;
+    overflow-y: auto;
+    background-color: var(--bg-color-secondary);
+    
+    // 覆盖 Vant 日历以全屏填充
+    .custom-calendar {
+      height: auto;
+      min-height: 100%;
+    }
+    
+    /* 自定义日历注入的类名样式 */
+    :deep(.calendar-expense-day .van-calendar__bottom-info) {
+      color: var(--text-color-primary);
+      font-weight: bold;
+    }
+    :deep(.calendar-income-day .van-calendar__bottom-info) {
+      color: var(--brand-income, #ff976a);
+      font-weight: bold;
     }
   }
 }

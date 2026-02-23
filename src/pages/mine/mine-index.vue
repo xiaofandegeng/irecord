@@ -13,28 +13,33 @@
     <div class="asset-card">
       <div class="asset-row">
         <div class="asset-item">
-          <div class="label">净资产</div>
-          <div class="value">¥ {{ accountStore.totalNetAsset.toFixed(2) }}</div>
+          <span class="label">净资产</span>
+          <span class="value">{{ accountStore.privacyMode ? '****' : accountStore.totalNetAsset.toFixed(2) }}</span>
         </div>
         <div class="divider"></div>
         <div class="asset-item">
-          <div class="label">总负债</div>
-          <div class="value text-danger">¥ {{ accountStore.totalDebt.toFixed(2) }}</div>
+          <span class="label">总负债</span>
+          <span class="value">{{ accountStore.privacyMode ? '****' : accountStore.totalDebt.toFixed(2) }}</span>
         </div>
       </div>
     </div>
     
     <div class="settings-list">
       <van-cell-group inset>
+        <van-cell title="月度总预算" is-link :value="store.budget > 0 ? `¥ ${store.budget}` : '去设置'" @click="showBudget = true" />
         <van-cell title="资产账户管理" is-link to="/account-manage" />
         <van-cell title="数据总计" :value="`${store.records.length} 笔`" />
         <van-cell title="自定义分类配置" is-link to="/category-manage" />
       </van-cell-group>
-
       
       <div class="space"></div>
       
       <van-cell-group inset>
+        <van-cell title="隐私模式 (隐藏金额)" center>
+          <template #right-icon>
+            <van-switch v-model="accountStore.privacyMode" size="24" />
+          </template>
+        </van-cell>
         <van-cell title="导出数据 (CSV)" is-link @click="exportData" />
         <van-cell title="深色模式" center>
           <template #right-icon>
@@ -49,6 +54,11 @@
         <van-cell title="清空所有数据" is-link class="danger-text" @click="clearAll" />
       </van-cell-group>
     </div>
+
+    <!-- 预算设置弹窗 -->
+    <van-dialog v-model:show="showBudget" title="设置月度预算" show-cancel-button @confirm="onConfirmBudget">
+      <van-field v-model="tempBudget" type="number" label="预算金额" placeholder="请输入每月预算" />
+    </van-dialog>
   </div>
 </template>
 
@@ -60,6 +70,15 @@ import { useAccountStore } from '@/stores/account'
 
 const store = useRecordStore()
 const accountStore = useAccountStore()
+
+const showBudget = ref(false)
+const tempBudget = ref(store.budget ? String(store.budget) : '')
+
+const onConfirmBudget = () => {
+  const val = parseFloat(tempBudget.value) || 0
+  store.setBudget(val)
+  showToast(val > 0 ? '预算设置成功' : '已取消预算')
+}
 
 // 坚持天数简单计算(以第一笔记录为准)
 const totalDays = computed(() => {

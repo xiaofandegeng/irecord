@@ -34,13 +34,17 @@ const defaultCategories: Category[] = [
 export const useRecordStore = defineStore('record', {
     state: () => ({
         categories: [...defaultCategories] as Category[],
-        records: [] as RecordItem[]
+        records: [] as RecordItem[],
+        budget: 0 // 月度预算
     }),
     getters: {
         expenseCategories: (state) => state.categories.filter(c => c.type === 1).sort((a, b) => a.sort - b.sort),
         incomeCategories: (state) => state.categories.filter(c => c.type === 2).sort((a, b) => a.sort - b.sort)
     },
     actions: {
+        setBudget(amount: number) {
+            this.budget = amount
+        },
         addRecord(record: Omit<RecordItem, 'id' | 'createTime'>) {
             const newRecord: RecordItem = {
                 ...record,

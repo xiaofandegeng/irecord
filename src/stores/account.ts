@@ -17,7 +17,8 @@ const defaultAccounts: AccountEntity[] = [
 
 export const useAccountStore = defineStore('account', {
     state: () => ({
-        accounts: [...defaultAccounts] as AccountEntity[]
+        accounts: [...defaultAccounts] as AccountEntity[],
+        privacyMode: false // 隐私模式开关
     }),
     getters: {
         totalNetAsset: (state) => {
@@ -29,6 +30,9 @@ export const useAccountStore = defineStore('account', {
         }
     },
     actions: {
+        togglePrivacy() {
+            this.privacyMode = !this.privacyMode
+        },
         updateBalance(id: string, delta: number) {
             const acc = this.accounts.find(a => a.id === id)
             if (acc) {

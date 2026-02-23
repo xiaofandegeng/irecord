@@ -1,0 +1,16 @@
+{
+    "name": "irecord 极简记账",
+    "short_name": "irecord",
+    "description": "极快、极简、高大上的记账App",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#1989fa",
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "64x64 32x32 24x24 16x16",
+            "type": "image/x-icon"
+        }
+    ]
+}

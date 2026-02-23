@@ -27,6 +27,21 @@
           <input type="text" v-model="remark" placeholder="写点备注..." />
         </div>
       </div>
+      
+      <!-- 预算进度 -->
+      <div class="budget-bar" v-if="store.budget > 0">
+        <div class="budget-texts">
+          <span>本月剩余: {{ accountStore.privacyMode ? '****' : `¥ ${remainingBudget}` }}</span>
+          <span class="pct">{{ budgetProgress.toFixed(0) }}% 已用</span>
+        </div>
+        <van-progress 
+          :percentage="budgetProgress" 
+          :show-pivot="false" 
+          color="#ff976a" 
+          track-color="rgba(255,255,255,0.3)" 
+          stroke-width="6" 
+        />
+      </div>
     </div>
 
     <div class="category-section">
@@ -113,6 +128,30 @@ watch(recordType, () => {
 const selectCategory = (id: string) => {
   selectedCategoryId.value = id
 }
+
+// 预算计算
+const currentMonthExpense = computed(() => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  return store.records
+    .filter(r => r.type === 1)
+    .filter(r => {
+      const d = new Date(r.recordTime)
+      return d.getFullYear() === year && d.getMonth() === month
+    })
+    .reduce((sum, r) => sum + r.amount, 0)
+})
+
+const budgetProgress = computed(() => {
+  if (store.budget <= 0) return 0
+  const pct = (currentMonthExpense.value / store.budget) * 100
+  return Math.min(pct, 100)
+})
+
+const remainingBudget = computed(() => {
+  return (store.budget - currentMonthExpense.value).toFixed(2)
+})
 
 // 提交保存
 const submitRecord = () => {
@@ -206,21 +245,38 @@ const submitRecord = () => {
         }
       }
       
-      .remark-input {
-        flex: 1;
-        input {
+        .remark-input {
           flex: 1;
-          background: transparent;
-          border: none;
-          color: #fff;
-          outline: none;
-          &::placeholder {
-            color: rgba(255,255,255,0.6);
+          input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            outline: none;
+            &::placeholder {
+              color: rgba(255,255,255,0.6);
+            }
+          }
+        }
+      }
+      
+      .budget-bar {
+        padding: 12px 0 16px;
+        
+        .budget-texts {
+          display: flex;
+          justify-content: space-between;
+          font-size: 12px;
+          margin-bottom: 6px;
+          opacity: 0.9;
+          
+          .pct {
+            font-size: 11px;
+            opacity: 0.8;
           }
         }
       }
     }
-  }
   
   .category-section {
     flex: 1;

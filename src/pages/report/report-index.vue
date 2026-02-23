@@ -2,9 +2,8 @@
   <div class="report-container">
     <div class="header">
       <div class="filter-bar">
-        <!-- 简易按月切换，后续可优化为 DatePicker -->
-        <span class="month-selector" @click="showMonthPicker = true">
-          {{ currentMonth }} <van-icon name="arrow-down" />
+        <span class="month-selector" @click="showPicker = true">
+          {{ displayDateText }} <van-icon name="arrow-down" />
         </span>
       </div>
       <van-tabs v-model:active="recordType" type="card" color="var(--van-primary-color)">
@@ -15,7 +14,7 @@
     
     <div class="summary-card">
       <div class="total-label">总{{ recordType === 1 ? '支出' : '收入' }}</div>
-      <div class="total-amount">¥ {{ totalAmount.toFixed(2) }}</div>
+      <div class="total-amount">{{ accountStore.privacyMode ? '****' : `¥ ${totalAmount.toFixed(2)}` }}</div>
     </div>
 
     <!-- 图表区 -->
@@ -33,7 +32,7 @@
         <div class="info">
           <div class="title-row">
             <span class="name">{{ item.name }}</span>
-            <span class="amount">{{ item.value.toFixed(2) }}</span>
+            <span class="amount">{{ accountStore.privacyMode ? '****' : item.value.toFixed(2) }}</span>
           </div>
           <div class="progress-bar">
             <!-- 直接使用内联样式驱动进度条宽度，计算占最高支出的比例 -->
@@ -47,44 +46,69 @@
       <van-empty description="本月暂无数据" />
     </div>
 
-    <!-- 月份选择器 -->
-    <van-popup v-model:show="showMonthPicker" position="bottom">
+    <!-- 日期选择器 -->
+    <van-popup v-model:show="showPicker" position="bottom">
+      <div class="picker-tabs">
+        <van-tabs v-model:active="dateType">
+          <van-tab title="按月" name="month"></van-tab>
+          <van-tab title="按年" name="year"></van-tab>
+        </van-tabs>
+      </div>
       <van-date-picker 
         v-model="pickerValue"
-        title="选择月份"
+        title="选择时间"
         :min-date="minDate"
         :max-date="maxDate"
-        :columns-type="['year', 'month']"
-        @confirm="onConfirmMonth"
-        @cancel="showMonthPicker = false"
+        :columns-type="dateType === 'month' ? ['year', 'month'] : ['year']"
+        @confirm="onConfirmDate"
+        @cancel="showPicker = false"
       />
     </van-popup>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRecordStore, type RecordItem } from '@/stores/record'
+import { useAccountStore } from '@/stores/account'
 import ChartPie from '@/components/ChartPie.vue'
 
 const store = useRecordStore()
+const accountStore = useAccountStore()
 
 const recordType = ref<1 | 2>(1)
+const dateType = ref<'month' | 'year'>('month')
 
 // 日期选择逻辑
 const now = new Date()
 const pickerValue = ref([String(now.getFullYear()), String(now.getMonth() + 1).padStart(2, '0')])
-const currentMonth = ref(`${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月`)
+const displayDateText = ref(`${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月`)
 
-const showMonthPicker = ref(false)
+watch(dateType, (newVal) => {
+  if (newVal === 'year') {
+    pickerValue.value = [String(now.getFullYear())]
+    displayDateText.value = `${now.getFullYear()}年`
+  } else {
+    pickerValue.value = [String(now.getFullYear()), String(now.getMonth() + 1).padStart(2, '0')]
+    displayDateText.value = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月`
+  }
+})
+
+const showPicker = ref(false)
 const minDate = new Date(2020, 0, 1)
 const maxDate = new Date(now.getFullYear() + 5, 11, 31)
 
-const onConfirmMonth = ({ selectedValues }: any) => {
-  const [year, month] = selectedValues
-  currentMonth.value = `${year}年${month}月`
-  pickerValue.value = [year, month]
-  showMonthPicker.value = false
+const onConfirmDate = ({ selectedValues }: any) => {
+  if (dateType.value === 'month') {
+    const [year, month] = selectedValues
+    displayDateText.value = `${year}年${month}月`
+    pickerValue.value = [year, month]
+  } else {
+    const [year] = selectedValues
+    displayDateText.value = `${year}年`
+    pickerValue.value = [year]
+  }
+  showPicker.value = false
 }
 
 // 获取分类信息辅助函数
@@ -97,14 +121,19 @@ const getCategoryName = (id: string) => {
   return cat ? cat.name : '未知'
 }
 
-// 提取当前选中月份的数据
+// 提取当前选中时长的数据
 const filteredRecords = computed(() => {
-  const [year, month] = pickerValue.value
   return store.records.filter((r: RecordItem) => {
     const d = new Date(r.recordTime)
-    return r.type === recordType.value && 
-           String(d.getFullYear()) === year && 
-           String(d.getMonth() + 1).padStart(2, '0') === month
+    if (r.type !== recordType.value) return false
+    
+    if (dateType.value === 'month') {
+      const [year, month] = pickerValue.value
+      return String(d.getFullYear()) === year && String(d.getMonth() + 1).padStart(2, '0') === month
+    } else {
+      const [year] = pickerValue.value
+      return String(d.getFullYear()) === year
+    }
   })
 })
 
