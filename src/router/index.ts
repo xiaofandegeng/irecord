@@ -1,0 +1,35 @@
+import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router'
+
+const routes: Array<RouteRecordRaw> = [
+    {
+        path: '/',
+        redirect: '/home'
+    },
+    {
+        path: '/home',
+        name: 'Home',
+        component: () => import('@/pages/home/home-index.vue')
+    },
+    {
+        path: '/detail',
+        name: 'Detail',
+        component: () => import('@/pages/detail/detail-index.vue')
+    },
+    {
+        path: '/report',
+        name: 'Report',
+        component: () => import('@/pages/report/report-index.vue')
+    },
+    {
+        path: '/mine',
+        name: 'Mine',
+        component: () => import('@/pages/mine/mine-index.vue')
+    }
+]
+
+const router = createRouter({
+    history: createWebHashHistory(),
+    routes
+})
+
+export default router

@@ -1,0 +1,23 @@
+/* 全局样式与变量定义 */
+:root {
+  --van-primary-color: #07c160;
+  --bg-color-primary: #ffffff;
+  --bg-color-secondary: #f7f8fa;
+  --text-color-primary: #323233;
+  --text-color-secondary: #969799;
+  --brand-income: #07c160;
+  --brand-expense: #ee0a24;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-color-secondary);
+  color: var(--text-color-primary);
+  /* 禁用 iOS 移动端默认的高亮行为 */
+  -webkit-tap-highlight-color: transparent;
+}

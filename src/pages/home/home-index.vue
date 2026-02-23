@@ -1,0 +1,247 @@
+<template>
+  <div class="home-container">
+    <div class="top-section">
+      <div class="type-switch">
+        <van-tabs v-model:active="recordType" type="card" color="var(--van-primary-color)">
+          <van-tab title="支出" :name="1"></van-tab>
+          <van-tab title="收入" :name="2"></van-tab>
+        </van-tabs>
+      </div>
+      
+      <div class="amount-display">
+        <span class="currency">¥</span>
+        <span class="value">{{ amountVal }}</span>
+      </div>
+      
+      <div class="info-bar">
+        <div class="info-item">
+          <van-icon name="clock-o" />
+          <span>今天</span>
+        </div>
+        <div class="info-item remark-input">
+          <van-icon name="edit" />
+          <input type="text" v-model="remark" placeholder="写点备注..." />
+        </div>
+      </div>
+    </div>
+
+    <div class="category-section">
+      <div class="category-grid">
+        <div 
+          v-for="cat in currentCategories" 
+          :key="cat.id"
+          class="category-item"
+          :class="{ active: selectedCategoryId === cat.id }"
+          @click="selectCategory(cat.id)"
+        >
+          <div class="icon-wrap">
+            <van-icon :name="cat.icon" size="24" />
+          </div>
+          <span class="name">{{ cat.name }}</span>
+        </div>
+      </div>
+    </div>
+
+    <CustomKeyboard 
+      v-model="amountVal"
+      class="fixed-keyboard"
+      @confirm="submitRecord"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import { showToast } from 'vant'
+import { useRecordStore } from '@/stores/record'
+import CustomKeyboard from '@/components/CustomKeyboard.vue'
+
+const store = useRecordStore()
+
+// 状态
+const recordType = ref<1 | 2>(1)
+const amountVal = ref('0')
+const remark = ref('')
+const selectedCategoryId = ref('')
+
+// 获取当前类型下的分类列表
+const currentCategories = computed(() => {
+  return recordType.value === 1 ? store.expenseCategories : store.incomeCategories
+})
+
+// 监听类型变化，重置选中分类
+watch(recordType, () => {
+  if (currentCategories.value.length > 0) {
+    selectedCategoryId.value = currentCategories.value[0].id
+  }
+}, { immediate: true })
+
+const selectCategory = (id: string) => {
+  selectedCategoryId.value = id
+}
+
+// 提交保存
+const submitRecord = () => {
+  const amount = parseFloat(amountVal.value)
+  if (amount <= 0 && amountVal.value !== '0') {
+    showToast('请输入有效金额')
+    return
+  }
+  
+  if (!selectedCategoryId.value) {
+    showToast('请选择分类')
+    return
+  }
+  
+  store.addRecord({
+    type: recordType.value,
+    amount: amount,
+    categoryId: selectedCategoryId.value,
+    accountId: 'a1', // 默认记入"现金"账户
+    recordTime: Date.now(),
+    remark: remark.value
+  })
+  
+  showToast({
+    message: '记账成功',
+    icon: 'success'
+  })
+  
+  // 重置状态
+  amountVal.value = '0'
+  remark.value = ''
+}
+</script>
+
+<style lang="scss" scoped>
+.home-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  
+  .top-section {
+    padding: 16px 16px 0;
+    background-color: var(--van-primary-color);
+    color: #fff;
+    
+    .type-switch {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 24px;
+      
+      :deep(.van-tabs__nav--card) {
+        border-color: #fff;
+        .van-tab {
+          color: #fff;
+          border-right-color: #fff;
+          &.van-tab--active {
+            color: var(--van-primary-color);
+            background-color: #fff;
+          }
+        }
+      }
+    }
+    
+    .amount-display {
+      font-size: 36px;
+      font-weight: 500;
+      display: flex;
+      align-items: baseline;
+      margin-bottom: 16px;
+      
+      .currency {
+        font-size: 24px;
+        margin-right: 4px;
+      }
+    }
+    
+    .info-bar {
+      display: flex;
+      align-items: center;
+      padding-bottom: 12px;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      
+      .info-item {
+        display: flex;
+        align-items: center;
+        margin-right: 16px;
+        
+        .van-icon {
+          margin-right: 4px;
+        }
+      }
+      
+      .remark-input {
+        flex: 1;
+        input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          color: #fff;
+          outline: none;
+          &::placeholder {
+            color: rgba(255,255,255,0.6);
+          }
+        }
+      }
+    }
+  }
+  
+  .category-section {
+    flex: 1;
+    overflow-y: auto;
+    background-color: var(--bg-color-primary);
+    
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px 0;
+      padding: 16px 0;
+      
+      .category-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-color-primary);
+        
+        .icon-wrap {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background-color: var(--bg-color-secondary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 6px;
+          transition: all 0.2s;
+        }
+        
+        .name {
+          font-size: 12px;
+        }
+        
+        &.active {
+          .icon-wrap {
+            background-color: var(--van-primary-color);
+            color: #fff;
+            transform: scale(1.1);
+          }
+          .name {
+            color: var(--van-primary-color);
+            font-weight: 500;
+          }
+        }
+      }
+    }
+  }
+  
+  .fixed-keyboard {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    z-index: 100;
+  }
+}
+</style>
