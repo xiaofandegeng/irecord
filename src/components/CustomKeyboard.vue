@@ -138,9 +138,11 @@ const onConfirm = () => {
       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
       cursor: pointer;
       user-select: none;
+      transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.1s;
       
       &:active {
         background-color: #ebedf0;
+        transform: scale(0.92);
       }
     }
     

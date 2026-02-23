@@ -24,6 +24,16 @@ const routes: Array<RouteRecordRaw> = [
         path: '/mine',
         name: 'Mine',
         component: () => import('@/pages/mine/mine-index.vue')
+    },
+    {
+        path: '/category-manage',
+        name: 'CategoryManage',
+        component: () => import('@/pages/category/category-manage.vue')
+    },
+    {
+        path: '/account-manage',
+        name: 'AccountManage',
+        component: () => import('@/pages/account/account-manage.vue')
     }
 ]
 

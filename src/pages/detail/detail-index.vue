@@ -15,14 +15,14 @@
     </div>
 
     <div class="list-area">
-      <template v-if="Object.keys(groupedRecords).length > 0">
+      <transition-group name="list" tag="div" class="list-wrapper" v-if="Object.keys(groupedRecords).length > 0">
         <div v-for="(records, dateKey) in groupedRecords" :key="dateKey" class="date-group">
           <div class="date-header">
             <span class="date">{{ formatHeaderDate(dateKey) }}</span>
             <span class="daily-sum">{{ getDailySum(records) }}</span>
           </div>
           
-          <div class="record-list">
+          <transition-group name="list" tag="div" class="record-list">
             <van-swipe-cell v-for="record in records" :key="record.id">
               <div class="record-item">
                 <div class="icon-wrap" :class="{'is-income': record.type === 2}">
@@ -46,9 +46,9 @@
                 <van-button square text="删除" type="danger" class="delete-button" @click="onDelete(record.id)" />
               </template>
             </van-swipe-cell>
-          </div>
+          </transition-group>
         </div>
-      </template>
+      </transition-group>
       <div v-else class="empty-state">
         <van-empty description="暂无账单数据" />
       </div>
@@ -259,5 +259,19 @@ const onDelete = (id: string) => {
       height: 100%;
     }
   }
+}
+
+/* 列表过渡动画 */
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.3s cubic-bezier(0.55, 0, 0.1, 1);
+}
+.list-enter-from {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
 }
 </style>

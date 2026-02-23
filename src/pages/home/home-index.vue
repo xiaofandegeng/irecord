@@ -18,6 +18,10 @@
           <van-icon name="clock-o" />
           <span>今天</span>
         </div>
+        <div class="info-item" @click="showAccountPicker = true">
+          <van-icon name="gold-coin-o" />
+          <span>{{ currentAccount?.name || '选择账户' }}</span>
+        </div>
         <div class="info-item remark-input">
           <van-icon name="edit" />
           <input type="text" v-model="remark" placeholder="写点备注..." />
@@ -47,6 +51,14 @@
       class="fixed-keyboard"
       @confirm="submitRecord"
     />
+
+    <!-- 选择账户 -->
+    <van-action-sheet 
+      v-model:show="showAccountPicker" 
+      :actions="accountActions" 
+      cancel-text="取消"
+      @select="onSelectAccount" 
+    />
   </div>
 </template>
 
@@ -54,15 +66,37 @@
 import { ref, computed, watch } from 'vue'
 import { showToast } from 'vant'
 import { useRecordStore } from '@/stores/record'
+import { useAccountStore } from '@/stores/account'
 import CustomKeyboard from '@/components/CustomKeyboard.vue'
 
 const store = useRecordStore()
+const accountStore = useAccountStore()
 
 // 状态
 const recordType = ref<1 | 2>(1)
 const amountVal = ref('0')
 const remark = ref('')
 const selectedCategoryId = ref('')
+
+const selectedAccountId = ref('a1')
+const showAccountPicker = ref(false)
+
+const accountActions = computed(() => {
+  return accountStore.accounts.map(a => ({
+    name: a.name,
+    value: a.id,
+    color: selectedAccountId.value === a.id ? 'var(--van-primary-color)' : undefined
+  }))
+})
+
+const currentAccount = computed(() => {
+  return accountStore.accounts.find(a => a.id === selectedAccountId.value)
+})
+
+const onSelectAccount = (action: any) => {
+  selectedAccountId.value = action.value
+  showAccountPicker.value = false
+}
 
 // 获取当前类型下的分类列表
 const currentCategories = computed(() => {
@@ -97,7 +131,7 @@ const submitRecord = () => {
     type: recordType.value,
     amount: amount,
     categoryId: selectedCategoryId.value,
-    accountId: 'a1', // 默认记入"现金"账户
+    accountId: selectedAccountId.value, // 使用手动选中的关联账户
     recordTime: Date.now(),
     remark: remark.value
   })

@@ -26,9 +26,9 @@
     
     <div class="settings-list">
       <van-cell-group inset>
-        <van-cell title="资产账户管理" is-link @click="showToast('资产充值/平账将在V2细化')" />
+        <van-cell title="资产账户管理" is-link to="/account-manage" />
         <van-cell title="数据总计" :value="`${store.records.length} 笔`" />
-        <van-cell title="自定义分类" is-link @click="showToast('自定义分类管理将在后续细化')" />
+        <van-cell title="自定义分类配置" is-link to="/category-manage" />
       </van-cell-group>
 
       
