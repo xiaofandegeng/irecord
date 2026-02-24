@@ -16,7 +16,8 @@
         "vant": "^4.8.2",
         "vue": "^3.4.21",
         "vue-echarts": "^8.0.1",
-        "vue-router": "^4.3.0"
+        "vue-router": "^4.3.0",
+        "webdav": "^5.9.0"
     },
     "devDependencies": {
         "@types/node": "^20.11.24",

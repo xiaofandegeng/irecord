@@ -62,6 +62,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'GoalManage',
         component: () => import('@/pages/goal/goal-manage.vue'),
         meta: { title: '存钱计划' }
+    },
+    {
+        path: '/sync-manage',
+        name: 'SyncManage',
+        component: () => import('@/pages/sync/sync-manage.vue'),
+        meta: { title: '数据同步' }
     }
 ]
 

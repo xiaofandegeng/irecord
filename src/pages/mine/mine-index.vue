@@ -82,6 +82,7 @@
       <div class="space"></div>
       
       <van-cell-group inset>
+        <van-cell title="WebDAV 云端数据同步" is-link to="/sync-manage" />
         <van-cell title="隐私模式 (隐藏金额)" center>
           <template #right-icon>
             <van-switch v-model="accountStore.privacyMode" size="24" />
