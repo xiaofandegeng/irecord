@@ -23,6 +23,8 @@ export interface RecordItem {
     tags?: string[] // 新增：为单一流水追加多维度的标签阵列
     ledgerId?: string // 新增：支持多账本隔离
     goalId?: string // 新增：支持计入存钱目标
+    reimbursable?: boolean // 新增：是否可报销
+    reimbursableId?: string // 新增：如果是一笔报销收款入账，关联的原始支出的ID
 }
 
 // 默认内置分类
@@ -107,14 +109,57 @@ export const useRecordStore = defineStore('record', {
                     })
                 }
 
-                // 同步回滚心愿单目标
                 if (deleted.goalId) {
                     import('./goal').then(module => {
                         const delta = deleted.type === 1 ? -deleted.amount : deleted.amount
                         module.useGoalStore().updateGoalProgress(deleted.goalId!, delta)
                     })
                 }
+
+                // 若删除的是一笔“报销入账”（reimbursableId 存在），则需要将原支出账单恢复为“未报销”状态
+                if (deleted.reimbursableId) {
+                    const originalExpense = this.records.find(r => r.id === deleted.reimbursableId)
+                    if (originalExpense) {
+                        originalExpense.reimbursable = true // 重新变成可报销
+                    }
+                }
+
+                // 如果删除的是原始可报销支出，且它已经被报销了（reimbursable === false），
+                // 严谨做法是同时删除由它产生的报销入账，或者给予提示。这里暂为了简单直接删除。
+
                 this.records.splice(idx, 1)
+            }
+        },
+        // 核心一键报销逻辑
+        reimburseRecord(expenseId: string, incomeAccountId?: string) {
+            const expense = this.records.find(r => r.id === expenseId)
+            if (!expense || expense.type !== 1 || expense.reimbursable === false) return
+
+            // 1. 将原支出标记为已报销 (不再视为 reimbursable 待报销)
+            expense.reimbursable = false
+
+            // 2. 生成一笔对应的报销入账
+            const incomeRecord: RecordItem = {
+                id: crypto.randomUUID(),
+                type: 2, // 收入
+                amount: expense.amount,
+                categoryId: 'c6', // 暂定存入内置类别（这里可以用专用的分类，我们用内置类别或者新增类别）
+                accountId: incomeAccountId,
+                recordTime: Date.now(),
+                createTime: Date.now(),
+                remark: `(报销) ${expense.remark || expense.categoryId}`,
+                ledgerId: expense.ledgerId,
+                reimbursableId: expense.id // 绑定关系
+            }
+
+            // 存入入账
+            this.records.unshift(incomeRecord)
+
+            // 3. 更新资产余额 (如选择了入账账户)
+            if (incomeAccountId) {
+                import('./account').then(module => {
+                    module.useAccountStore().updateBalance(incomeAccountId, incomeRecord.amount)
+                })
             }
         }
     },

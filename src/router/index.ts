@@ -68,6 +68,18 @@ const routes: Array<RouteRecordRaw> = [
         name: 'SyncManage',
         component: () => import('@/pages/sync/sync-manage.vue'),
         meta: { title: '数据同步' }
+    },
+    {
+        path: '/reimburse-manage',
+        name: 'ReimburseManage',
+        component: () => import('@/pages/reimburse/reimburse-manage.vue'),
+        meta: { title: '报销管理' }
+    },
+    {
+        path: '/debt-manage',
+        name: 'DebtManage',
+        component: () => import('@/pages/debt/debt-manage.vue'),
+        meta: { title: '借贷管理' }
     }
 ]
 

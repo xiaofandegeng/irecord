@@ -33,6 +33,12 @@
           <van-icon name="flag-o" />
           <span>{{ currentGoal?.name || '不存入心愿' }}</span>
         </div>
+        <!-- 报销开关 -->
+        <div class="info-item reimbursable-switch" v-if="recordType === 1">
+          <van-checkbox v-model="isReimbursable" shape="square" icon-size="14px" checked-color="var(--van-primary-color)">
+            <span style="color: #fff; font-size: 13px;">可报销</span>
+          </van-checkbox>
+        </div>
         <div class="info-item remark-input">
           <van-icon name="edit" />
           <input type="text" v-model="remark" placeholder="写点备注..." />
@@ -152,6 +158,7 @@ const remark = ref('')
 const selectedCategoryId = ref('')
 const newTagInput = ref('')
 const selectedTags = ref<string[]>([])
+const isReimbursable = ref(false)
 
 const selectedAccountId = ref('a1')
 const showAccountPicker = ref(false)
@@ -287,7 +294,8 @@ const submitRecord = () => {
     recordTime: Date.now(),
     remark: remark.value,
     tags: [...selectedTags.value],
-    goalId: recordType.value === 1 && selectedGoalId.value ? selectedGoalId.value : undefined // 如果选了心愿单且是支出，绑定
+    goalId: recordType.value === 1 && selectedGoalId.value ? selectedGoalId.value : undefined, // 如果选了心愿单且是支出，绑定
+    reimbursable: recordType.value === 1 ? isReimbursable.value : undefined // 仅支出支持标记为待报销
   })
   
   showToast({
@@ -301,6 +309,7 @@ const submitRecord = () => {
   selectedTags.value = []
   newTagInput.value = ''
   selectedGoalId.value = '' // 清除刚才绑定的心愿单
+  isReimbursable.value = false // 重置待报销状态
 }
 </script>
 
@@ -385,6 +394,14 @@ const submitRecord = () => {
           
           .van-icon {
             margin-right: 4px;
+          }
+        }
+        
+        .reimbursable-switch {
+          margin-right: 12px;
+          opacity: 0.9;
+          :deep(.van-checkbox__label) {
+            margin-left: 4px;
           }
         }
         

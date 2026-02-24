@@ -16,10 +16,14 @@
           <span class="label">净资产</span>
           <span class="value">{{ accountStore.privacyMode ? '****' : accountStore.totalNetAsset.toFixed(2) }}</span>
         </div>
+        <div class="asset-item" @click="router.push('/debt-manage?type=1')">
+          <span class="label">待收 (借出)</span>
+          <span class="value" style="color: #07c160;">{{ accountStore.privacyMode ? '****' : debtStore.getLedgerTotals().lent.toFixed(2) }}</span>
+        </div>
         <div class="divider"></div>
-        <div class="asset-item">
-          <span class="label">总负债</span>
-          <span class="value">{{ accountStore.privacyMode ? '****' : accountStore.totalDebt.toFixed(2) }}</span>
+        <div class="asset-item" @click="router.push('/debt-manage?type=2')">
+          <span class="label">待还 (借入)</span>
+          <span class="value text-danger">{{ accountStore.privacyMode ? '****' : debtStore.getLedgerTotals().borrowed.toFixed(2) }}</span>
         </div>
       </div>
     </div>
@@ -72,6 +76,7 @@
       <van-cell-group inset>
         <van-cell title="多账本管理 (隔离独立数据)" is-link to="/ledger-manage" />
         <van-cell title="心愿单与存钱计划" is-link to="/goal-manage" />
+        <van-cell title="报销与垫付单管理" is-link to="/reimburse-manage" />
         <van-cell title="月度总预算" is-link :value="store.budget > 0 ? `¥ ${store.budget}` : '去设置'" @click="showBudget = true" />
         <van-cell title="周期自动记账 (定投/房租)" is-link to="/recurring-manage" />
         <van-cell title="资产账户管理" is-link to="/account-manage" />
@@ -118,11 +123,13 @@ import { showToast, showConfirmDialog } from 'vant'
 import { useRecordStore } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
 import { useGoalStore } from '@/stores/goal'
+import { useDebtStore } from '@/stores/debt'
 
 const router = useRouter()
 const store = useRecordStore()
 const accountStore = useAccountStore()
 const goalStore = useGoalStore()
+const debtStore = useDebtStore()
 
 const showBudget = ref(false)
 const tempBudget = ref(store.budget ? String(store.budget) : '')
@@ -300,7 +307,7 @@ const clearAll = () => {
         }
         
         .value {
-          font-size: 20px;
+          font-size: 18px;
           font-weight: 600;
           color: var(--text-color-primary);
           
