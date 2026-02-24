@@ -56,6 +56,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'LedgerManage',
         component: () => import('@/pages/ledger/ledger-manage.vue'),
         meta: { title: '账本管理' }
+    },
+    {
+        path: '/goal-manage',
+        name: 'GoalManage',
+        component: () => import('@/pages/goal/goal-manage.vue'),
+        meta: { title: '存钱计划' }
     }
 ]
 

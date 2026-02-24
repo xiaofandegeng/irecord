@@ -24,6 +24,32 @@
       </div>
     </div>
     
+    <!-- 存钱目标横向滑动区 -->
+    <div class="goals-section" v-if="goalStore.goals.length > 0">
+      <div class="section-header">
+        <span class="title">存钱计划</span>
+        <span class="action" @click="router.push('/goal-manage')">管理 <van-icon name="arrow" /></span>
+      </div>
+      <div class="goals-scroll">
+        <div class="goal-item" v-for="goal in goalStore.goals" :key="goal.id" @click="router.push('/goal-manage')">
+          <div class="g-icon"><van-icon :name="goal.icon" /></div>
+          <div class="g-info">
+            <div class="g-name">{{ goal.name }}</div>
+            <div class="g-progress">
+              <span class="g-current">{{ accountStore.privacyMode ? '****' : goal.currentAmount.toFixed(0) }}</span> 
+              / {{ accountStore.privacyMode ? '****' : goal.targetAmount.toFixed(0) }}
+            </div>
+            <van-progress 
+              :percentage="Math.min(100, (goal.currentAmount / goal.targetAmount) * 100)" 
+              stroke-width="4" 
+              color="var(--van-primary-color)" 
+              :show-pivot="false"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <!-- 分类预算超支预警 -->
     <div class="budget-alert-card" v-if="overBudgetCategories.length > 0">
       <div class="alert-title"><van-icon name="warning-o" /> 子预算预警</div>
@@ -45,6 +71,7 @@
     <div class="settings-list">
       <van-cell-group inset>
         <van-cell title="多账本管理 (隔离独立数据)" is-link to="/ledger-manage" />
+        <van-cell title="心愿单与存钱计划" is-link to="/goal-manage" />
         <van-cell title="月度总预算" is-link :value="store.budget > 0 ? `¥ ${store.budget}` : '去设置'" @click="showBudget = true" />
         <van-cell title="周期自动记账 (定投/房租)" is-link to="/recurring-manage" />
         <van-cell title="资产账户管理" is-link to="/account-manage" />
@@ -85,12 +112,16 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { showToast, showConfirmDialog } from 'vant'
 import { useRecordStore } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
+import { useGoalStore } from '@/stores/goal'
 
+const router = useRouter()
 const store = useRecordStore()
 const accountStore = useAccountStore()
+const goalStore = useGoalStore()
 
 const showBudget = ref(false)
 const tempBudget = ref(store.budget ? String(store.budget) : '')
@@ -282,6 +313,47 @@ const clearAll = () => {
         width: 1px;
         height: 30px;
         background-color: #ebedf0;
+      }
+    }
+  }
+
+  .goals-section {
+    margin: 0 16px 16px;
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      .title { font-weight: bold; font-size: 15px; }
+      .action { font-size: 13px; color: var(--text-color-secondary); display: flex; align-items: center; }
+    }
+
+    .goals-scroll {
+      display: flex;
+      overflow-x: auto;
+      gap: 12px;
+      padding-bottom: 4px;
+      &::-webkit-scrollbar { display: none; }
+      
+      .goal-item {
+        flex: 0 0 140px;
+        background-color: var(--bg-color-secondary);
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        
+        .g-icon { margin-bottom: 8px; font-size: 20px; color: var(--van-primary-color); }
+        .g-info {
+          .g-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .g-progress { font-size: 11px; color: var(--text-color-secondary); margin-bottom: 6px; }
+          .g-current { color: var(--text-color-primary); font-weight: bold; }
+        }
       }
     }
   }

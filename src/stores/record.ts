@@ -22,6 +22,7 @@ export interface RecordItem {
     remark: string
     tags?: string[] // 新增：为单一流水追加多维度的标签阵列
     ledgerId?: string // 新增：支持多账本隔离
+    goalId?: string // 新增：支持计入存钱目标
 }
 
 // 默认内置分类
@@ -84,6 +85,14 @@ export const useRecordStore = defineStore('record', {
                     accountStore.updateBalance(record.accountId!, delta)
                 })
             }
+
+            // 同步心愿单目标
+            if (record.goalId) {
+                import('./goal').then(module => {
+                    const delta = record.type === 1 ? record.amount : -record.amount
+                    module.useGoalStore().updateGoalProgress(record.goalId!, delta)
+                })
+            }
         },
         deleteRecord(id: string) {
             const idx = this.records.findIndex(r => r.id === id)
@@ -95,6 +104,14 @@ export const useRecordStore = defineStore('record', {
                         const accountStore = module.useAccountStore()
                         const delta = deleted.type === 1 ? deleted.amount : -deleted.amount
                         accountStore.updateBalance(deleted.accountId!, delta)
+                    })
+                }
+
+                // 同步回滚心愿单目标
+                if (deleted.goalId) {
+                    import('./goal').then(module => {
+                        const delta = deleted.type === 1 ? -deleted.amount : deleted.amount
+                        module.useGoalStore().updateGoalProgress(deleted.goalId!, delta)
                     })
                 }
                 this.records.splice(idx, 1)

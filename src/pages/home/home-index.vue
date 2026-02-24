@@ -29,6 +29,10 @@
           <van-icon name="gold-coin-o" />
           <span>{{ currentAccount?.name || '选择账户' }}</span>
         </div>
+        <div class="info-item" @click="showGoalPicker = true" v-if="recordType === 1 && goalStore.goals.length > 0">
+          <van-icon name="flag-o" />
+          <span>{{ currentGoal?.name || '不存入心愿' }}</span>
+        </div>
         <div class="info-item remark-input">
           <van-icon name="edit" />
           <input type="text" v-model="remark" placeholder="写点备注..." />
@@ -115,6 +119,15 @@
       cancel-text="取消"
       @select="onSelectLedger" 
     />
+
+    <!-- 选择心愿单 -->
+    <van-action-sheet 
+      v-model:show="showGoalPicker" 
+      :actions="goalActions" 
+      cancel-text="不存入任何心愿单"
+      @select="onSelectGoal" 
+      @cancel="onCancelGoal"
+    />
   </div>
 </template>
 
@@ -124,11 +137,13 @@ import { showToast } from 'vant'
 import { useRecordStore } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
 import { useLedgerStore } from '@/stores/ledger'
+import { useGoalStore } from '@/stores/goal'
 import CustomKeyboard from '@/components/CustomKeyboard.vue'
 
 const store = useRecordStore()
 const accountStore = useAccountStore()
 const ledgerStore = useLedgerStore()
+const goalStore = useGoalStore()
 
 // 状态
 const recordType = ref<1 | 2>(1)
@@ -170,6 +185,27 @@ const currentAccount = computed(() => {
 const onSelectAccount = (action: any) => {
   selectedAccountId.value = action.value
   showAccountPicker.value = false
+}
+
+// 心愿单
+const selectedGoalId = ref('')
+const showGoalPicker = ref(false)
+const goalActions = computed(() => {
+  return goalStore.goals.map(g => ({
+    name: g.name,
+    value: g.id,
+    color: selectedGoalId.value === g.id ? 'var(--van-primary-color)' : undefined
+  }))
+})
+const currentGoal = computed(() => goalStore.goals.find(g => g.id === selectedGoalId.value))
+
+const onSelectGoal = (action: any) => {
+  selectedGoalId.value = action.value
+  showGoalPicker.value = false
+}
+const onCancelGoal = () => {
+  selectedGoalId.value = ''
+  showGoalPicker.value = false
 }
 
 // 获取当前类型下的分类列表
@@ -250,7 +286,8 @@ const submitRecord = () => {
     accountId: selectedAccountId.value, // 使用手动选中的关联账户
     recordTime: Date.now(),
     remark: remark.value,
-    tags: [...selectedTags.value]
+    tags: [...selectedTags.value],
+    goalId: recordType.value === 1 && selectedGoalId.value ? selectedGoalId.value : undefined // 如果选了心愿单且是支出，绑定
   })
   
   showToast({
@@ -263,6 +300,7 @@ const submitRecord = () => {
   remark.value = ''
   selectedTags.value = []
   newTagInput.value = ''
+  selectedGoalId.value = '' // 清除刚才绑定的心愿单
 }
 </script>
 
