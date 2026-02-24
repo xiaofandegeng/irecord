@@ -28,6 +28,32 @@
         </div>
       </div>
       
+      <!-- Tags Input -->
+      <div class="tags-bar">
+        <div class="tags-list" v-if="selectedTags.length > 0">
+          <van-tag 
+            v-for="t in selectedTags" 
+            :key="t" 
+            closeable 
+            size="medium" 
+            type="primary" 
+            @close="removeTag(t)"
+          >
+            #{{ t }}
+          </van-tag>
+        </div>
+        <div class="tag-input-wrap">
+          <van-icon name="label-o" />
+          <input 
+            type="text" 
+            v-model="newTagInput" 
+            placeholder="打个标签 (空格/回车确认)" 
+            @keydown.enter="addTag"
+            @keydown.space.prevent="addTag"
+          />
+        </div>
+      </div>
+      
       <!-- 预算进度 -->
       <div class="budget-bar" v-if="store.budget > 0">
         <div class="budget-texts">
@@ -92,6 +118,8 @@ const recordType = ref<1 | 2>(1)
 const amountVal = ref('0')
 const remark = ref('')
 const selectedCategoryId = ref('')
+const newTagInput = ref('')
+const selectedTags = ref<string[]>([])
 
 const selectedAccountId = ref('a1')
 const showAccountPicker = ref(false)
@@ -127,6 +155,19 @@ watch(recordType, () => {
 
 const selectCategory = (id: string) => {
   selectedCategoryId.value = id
+}
+
+// 标签操作
+const addTag = () => {
+  const val = newTagInput.value.trim().replace(/^#/, '')
+  if (val && !selectedTags.value.includes(val)) {
+    selectedTags.value.push(val)
+  }
+  newTagInput.value = ''
+}
+
+const removeTag = (tag: string) => {
+  selectedTags.value = selectedTags.value.filter(t => t !== tag)
 }
 
 // 预算计算
@@ -166,13 +207,19 @@ const submitRecord = () => {
     return
   }
   
+  // 保存全局标签记录
+  selectedTags.value.forEach(t => {
+    store.addTag(t)
+  })
+
   store.addRecord({
     type: recordType.value,
     amount: amount,
     categoryId: selectedCategoryId.value,
     accountId: selectedAccountId.value, // 使用手动选中的关联账户
     recordTime: Date.now(),
-    remark: remark.value
+    remark: remark.value,
+    tags: [...selectedTags.value]
   })
   
   showToast({
@@ -183,6 +230,8 @@ const submitRecord = () => {
   // 重置状态
   amountVal.value = '0'
   remark.value = ''
+  selectedTags.value = []
+  newTagInput.value = ''
 }
 </script>
 
@@ -228,25 +277,64 @@ const submitRecord = () => {
       }
     }
     
-    .info-bar {
-      display: flex;
-      align-items: center;
-      padding-bottom: 12px;
-      font-size: 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.2);
-      
-      .info-item {
+      .info-bar {
         display: flex;
         align-items: center;
-        margin-right: 16px;
+        padding-bottom: 12px;
+        font-size: 14px;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
         
-        .van-icon {
-          margin-right: 4px;
+        .info-item {
+          display: flex;
+          align-items: center;
+          margin-right: 16px;
+          
+          .van-icon {
+            margin-right: 4px;
+          }
         }
-      }
-      
+        
         .remark-input {
           flex: 1;
+          input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            outline: none;
+            &::placeholder {
+              color: rgba(255,255,255,0.6);
+            }
+          }
+        }
+      }
+
+      .tags-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 8px 0;
+        gap: 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+
+        .tags-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .tag-input-wrap {
+          display: flex;
+          align-items: center;
+          flex: 1;
+          min-width: 120px;
+          font-size: 13px;
+          
+          .van-icon {
+            margin-right: 4px;
+            opacity: 0.8;
+          }
+
           input {
             flex: 1;
             background: transparent;

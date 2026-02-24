@@ -1,7 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { showNotify } from 'vant'
+import { useRecurringStore } from '@/stores/recurring'
 
 const activeTab = ref(0)
+const recurringStore = useRecurringStore()
+
+onMounted(() => {
+  // 检查是否有到达日期的周期账单需要自动入账
+  const triggeredCount = recurringStore.checkAndTrigger()
+  if (triggeredCount && triggeredCount > 0) {
+    showNotify({ type: 'success', message: `自动入账了 ${triggeredCount} 笔周期账单` })
+  }
+})
 </script>
 
 <template>

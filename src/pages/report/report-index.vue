@@ -11,6 +11,24 @@
         <van-tab title="收入" :name="2"></van-tab>
       </van-tabs>
     </div>
+
+    <!-- Tags Filter -->
+    <div class="tag-filter-bar" v-if="store.globalTags && store.globalTags.length > 0">
+      <span class="label">按标签筛选:</span>
+      <div class="tags-scroll">
+        <van-tag 
+          v-for="t in store.globalTags" 
+          :key="t" 
+          :plain="!activeTags.includes(t)" 
+          type="primary" 
+          size="medium"
+          class="filter-tag"
+          @click="toggleFilterTag(t)"
+        >
+          #{{ t }}
+        </van-tag>
+      </div>
+    </div>
     
     <div class="summary-card">
       <div class="total-label">总{{ recordType === 1 ? '支出' : '收入' }}</div>
@@ -78,6 +96,7 @@ const accountStore = useAccountStore()
 
 const recordType = ref<1 | 2>(1)
 const dateType = ref<'month' | 'year'>('month')
+const activeTags = ref<string[]>([])
 
 // 日期选择逻辑
 const now = new Date()
@@ -121,12 +140,29 @@ const getCategoryName = (id: string) => {
   return cat ? cat.name : '未知'
 }
 
+const toggleFilterTag = (tag: string) => {
+  if (activeTags.value.includes(tag)) {
+    activeTags.value = activeTags.value.filter(t => t !== tag)
+  } else {
+    activeTags.value.push(tag)
+  }
+}
+
 // 提取当前选中时长的数据
 const filteredRecords = computed(() => {
   return store.records.filter((r: RecordItem) => {
-    const d = new Date(r.recordTime)
+    // 基础过滤
     if (r.type !== recordType.value) return false
     
+    // 标签过滤
+    if (activeTags.value.length > 0) {
+      if (!r.tags || r.tags.length === 0) return false
+      // 只要包含选中的任意一个标签即可
+      const hasMatch = activeTags.value.some(t => r.tags!.includes(t))
+      if (!hasMatch) return false
+    }
+
+    const d = new Date(r.recordTime)
     if (dateType.value === 'month') {
       const [year, month] = pickerValue.value
       return String(d.getFullYear()) === year && String(d.getMonth() + 1).padStart(2, '0') === month
@@ -185,6 +221,35 @@ const maxAmount = computed(() => {
       display: flex;
       align-items: center;
       gap: 4px;
+    }
+  }
+
+  .tag-filter-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    
+    .label {
+      font-size: 12px;
+      color: var(--text-color-secondary);
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    
+    .tags-scroll {
+      display: flex;
+      overflow-x: auto;
+      gap: 8px;
+      padding-bottom: 4px;
+      
+      &::-webkit-scrollbar {
+        display: none;
+      }
+      
+      .filter-tag {
+        cursor: pointer;
+        white-space: nowrap;
+      }
     }
   }
   

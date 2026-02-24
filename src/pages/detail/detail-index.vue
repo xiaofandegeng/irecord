@@ -43,9 +43,21 @@
                       {{ record.type === 1 ? '-' : '+' }}{{ accountStore.privacyMode ? '****' : record.amount.toFixed(2) }}
                     </span>
                   </div>
-                  <div class="bottom-line" v-if="record.remark || record.recordTime">
+                  <div class="bottom-line" v-if="record.remark || record.recordTime || (record.tags && record.tags.length > 0)">
                     <span class="time">{{ formatTime(record.recordTime) }}</span>
                     <span class="remark" v-if="record.remark">{{ record.remark }}</span>
+                  </div>
+                  <div class="tags-line" v-if="record.tags && record.tags.length > 0">
+                    <van-tag 
+                      v-for="tag in record.tags" 
+                      :key="tag" 
+                      plain 
+                      type="primary" 
+                      size="medium"
+                      class="mini-tag"
+                    >
+                      #{{ tag }}
+                    </van-tag>
                   </div>
                 </div>
               </div>
@@ -337,9 +349,22 @@ const calendarFormatter = (day: any) => {
             align-items: center;
             font-size: 12px;
             color: var(--text-color-secondary);
+            margin-bottom: 4px;
             
             .time {
               margin-right: 8px;
+            }
+          }
+          
+          .tags-line {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            
+            .mini-tag {
+              font-size: 10px;
+              padding: 0 4px;
+              border-radius: 4px;
             }
           }
         }

@@ -37,6 +37,9 @@
             <div class="record-left">
               <div class="time">{{ new Date(item.recordTime || 0).toLocaleString() }}</div>
               <div class="remark van-ellipsis">{{ item.remark }}</div>
+              <div class="cat-tag" @click="openCategoryPicker(item)">
+                <van-tag type="primary" plain round>{{ getCategoryName(item.categoryId) }} <van-icon name="edit" /></van-tag>
+              </div>
             </div>
             <div class="record-right" :class="item.type === 1 ? 'expense' : 'income'">
               {{ item.type === 1 ? '-' : '+' }}{{ (item.amount || 0).toFixed(2) }}
@@ -45,24 +48,59 @@
         </div>
       </div>
     </div>
+
+    <van-action-sheet 
+      v-model:show="showCategoryPicker" 
+      :actions="categoryActions" 
+      cancel-text="取消"
+      @select="onSelectCategory" 
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showLoadingToast } from 'vant'
 import { useRecordStore } from '@/stores/record'
 import { parseBillCsv } from '@/utils/bill-parser'
+import { matchCategory } from '@/utils/category-matcher'
 import type { RecordItem } from '@/stores/record'
 
 const router = useRouter()
 const store = useRecordStore()
 
 const parsedRecords = ref<Partial<RecordItem>[]>([])
+const showCategoryPicker = ref(false)
+const currentEditItem = ref<Partial<RecordItem> | null>(null)
+
+const categoryActions = computed(() => {
+  const type = currentEditItem.value?.type || 1
+  const cats = type === 1 ? store.expenseCategories : store.incomeCategories
+  return cats.map(c => ({
+    name: c.name,
+    value: c.id
+  }))
+})
 
 const onClickLeft = () => {
   router.back()
+}
+
+const getCategoryName = (id?: string) => {
+  return store.categories.find(c => c.id === id)?.name || '未知分类'
+}
+
+const openCategoryPicker = (item: Partial<RecordItem>) => {
+  currentEditItem.value = item
+  showCategoryPicker.value = true
+}
+
+const onSelectCategory = (action: any) => {
+  if (currentEditItem.value) {
+    currentEditItem.value.categoryId = action.value
+  }
+  showCategoryPicker.value = false
 }
 
 const onFileChange = async (e: Event) => {
@@ -82,7 +120,13 @@ const onFileChange = async (e: Event) => {
 
   try {
     const text = await file.text()
-    const records = parseBillCsv(text)
+    const rawRecords = parseBillCsv(text)
+    
+    // 智能挂载分类
+    const records = rawRecords.map((r: Partial<RecordItem>) => ({
+      ...r,
+      categoryId: matchCategory(r.remark || '', r.type || 1)
+    }))
     if (records.length === 0) {
       showToast('未能识别到有效的账单记录')
     } else {
@@ -123,7 +167,7 @@ const confirmImport = () => {
       store.addRecord({
         type: rType,
         amount: rAmount,
-        categoryId: rType === 1 ? defaultExpenseCatId : defaultIncomeCatId,
+        categoryId: r.categoryId || (rType === 1 ? defaultExpenseCatId : defaultIncomeCatId),
         recordTime: rTime,
         remark: (r.remark || '') + ' [导入]',
       })
@@ -256,6 +300,10 @@ const confirmImport = () => {
               font-size: 14px;
               margin-top: 4px;
               color: var(--text-color-primary);
+            }
+            .cat-tag {
+              margin-top: 6px;
+              cursor: pointer;
             }
           }
 

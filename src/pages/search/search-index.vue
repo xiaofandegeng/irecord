@@ -38,6 +38,18 @@
                 <span class="time">{{ formatTime(record.recordTime) }}</span>
                 <span class="remark" v-if="record.remark">{{ record.remark }}</span>
               </div>
+              <div class="tags-line" v-if="record.tags && record.tags.length > 0">
+                <van-tag 
+                  v-for="tag in record.tags" 
+                  :key="tag" 
+                  plain 
+                  type="primary" 
+                  size="medium"
+                  class="mini-tag"
+                >
+                  #{{ tag }}
+                </van-tag>
+              </div>
             </template>
           </van-cell>
         </van-cell-group>
@@ -74,7 +86,9 @@ const filteredRecords = computed(() => {
     const remarkMatch = (r.remark || '').toLowerCase().includes(kw)
     const amountMatch = String(r.amount).includes(kw)
     const catMatch = getCategoryName(r.categoryId).toLowerCase().includes(kw)
-    return remarkMatch || amountMatch || catMatch
+    const tagMatch = (r.tags || []).some(t => t.toLowerCase().includes(kw))
+    
+    return remarkMatch || amountMatch || catMatch || tagMatch
   })
 })
 
@@ -168,9 +182,22 @@ const onCancel = () => {
       display: flex;
       font-size: 12px;
       color: var(--text-color-secondary);
+      margin-bottom: 4px;
       
       .time {
         margin-right: 12px;
+      }
+    }
+
+    .tags-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      
+      .mini-tag {
+        font-size: 10px;
+        padding: 0 4px;
+        border-radius: 4px;
       }
     }
     

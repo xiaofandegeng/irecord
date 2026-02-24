@@ -44,6 +44,12 @@ const routes: Array<RouteRecordRaw> = [
         path: '/import',
         name: 'Import',
         component: () => import('@/pages/import/import-index.vue')
+    },
+    {
+        path: '/recurring-manage',
+        name: 'recurring-manage',
+        component: () => import('@/pages/recurring/recurring-manage.vue'),
+        meta: { title: '周期记账', keepAlive: false }
     }
 ]
 

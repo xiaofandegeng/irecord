@@ -24,9 +24,28 @@
       </div>
     </div>
     
+    <!-- 分类预算超支预警 -->
+    <div class="budget-alert-card" v-if="overBudgetCategories.length > 0">
+      <div class="alert-title"><van-icon name="warning-o" /> 子预算预警</div>
+      <div class="alert-item" v-for="cat in overBudgetCategories" :key="cat.id">
+        <div class="cat-info">
+          <van-icon :name="cat.icon" class="cat-icon" /> 
+          <span class="cat-name">{{ cat.name }}</span>
+        </div>
+        <div class="budget-info">
+          已用: <span class="danger">{{ cat.spent.toFixed(2) }}</span> / {{ cat.budgetLimit }}
+        </div>
+        <!-- 进度条 -->
+        <div class="progress">
+          <div class="fill danger-bg" :style="{ width: `${Math.min(100, (cat.spent / cat.budgetLimit) * 100)}%` }"></div>
+        </div>
+      </div>
+    </div>
+    
     <div class="settings-list">
       <van-cell-group inset>
         <van-cell title="月度总预算" is-link :value="store.budget > 0 ? `¥ ${store.budget}` : '去设置'" @click="showBudget = true" />
+        <van-cell title="周期自动记账 (定投/房租)" is-link to="/recurring-manage" />
         <van-cell title="资产账户管理" is-link to="/account-manage" />
         <van-cell title="数据总计" :value="`${store.records.length} 笔`" />
         <van-cell title="自定义分类配置" is-link to="/category-manage" />
@@ -80,6 +99,45 @@ const onConfirmBudget = () => {
   store.setBudget(val)
   showToast(val > 0 ? '预算设置成功' : '已取消预算')
 }
+
+// 计算本月各个分类是否超支
+const overBudgetCategories = computed(() => {
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
+  
+  // 仅计算本月的支出
+  const monthRecords = store.records.filter(r => {
+    if (r.type !== 1) return false
+    const d = new Date(r.recordTime)
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+  })
+
+  // 按分类汇总
+  const spentMap: Record<string, number> = {}
+  monthRecords.forEach(r => {
+    if (!spentMap[r.categoryId]) spentMap[r.categoryId] = 0
+    spentMap[r.categoryId] += r.amount
+  })
+
+  const overList: any[] = []
+  store.categories.forEach(cat => {
+    if (cat.budgetLimit && cat.budgetLimit > 0) {
+      const spent = spentMap[cat.id] || 0
+      if (spent >= cat.budgetLimit * 0.8) { // 达到 80% 即预警
+        overList.push({
+          id: cat.id,
+          name: cat.name,
+          icon: cat.icon,
+          budgetLimit: cat.budgetLimit,
+          spent: spent
+        })
+      }
+    }
+  })
+  
+  return overList.sort((a, b) => (b.spent / b.budgetLimit) - (a.spent / a.budgetLimit))
+})
 
 // 坚持天数简单计算(以第一笔记录为准)
 const totalDays = computed(() => {
@@ -223,6 +281,76 @@ const clearAll = () => {
         width: 1px;
         height: 30px;
         background-color: #ebedf0;
+      }
+    }
+  }
+
+  .budget-alert-card {
+    background-color: #fff;
+    margin: 0 16px 16px;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+
+    .alert-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--van-danger-color);
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      
+      .van-icon {
+        margin-right: 6px;
+      }
+    }
+
+    .alert-item {
+      margin-bottom: 12px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .cat-info {
+        display: flex;
+        align-items: center;
+        margin-bottom: 4px;
+
+        .cat-icon {
+          color: var(--van-primary-color);
+          margin-right: 6px;
+        }
+        .cat-name {
+          font-size: 14px;
+          color: var(--text-color-primary);
+        }
+      }
+
+      .budget-info {
+        font-size: 12px;
+        color: var(--text-color-secondary);
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+
+        .danger {
+          color: var(--van-danger-color);
+          font-weight: 500;
+        }
+      }
+
+      .progress {
+        height: 6px;
+        background-color: var(--bg-color-secondary);
+        border-radius: 3px;
+        overflow: hidden;
+
+        .fill.danger-bg {
+          height: 100%;
+          background-color: var(--van-danger-color);
+          transition: width 0.3s;
+        }
       }
     }
   }

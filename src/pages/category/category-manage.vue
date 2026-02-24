@@ -17,7 +17,11 @@
 
       <div class="category-list">
         <van-swipe-cell v-for="cat in currentCategories" :key="cat.id">
-          <van-cell :title="cat.name" center>
+          <van-cell center @click="openEditBudget(cat)">
+            <template #title>
+              <div>{{ cat.name }}</div>
+              <div class="cat-budget" v-if="cat.budgetLimit">预算: ¥{{ cat.budgetLimit }}</div>
+            </template>
             <template #icon>
               <div class="icon-wrap" :class="{'is-income': cat.type === 2}">
                 <van-icon :name="cat.icon" size="20" />
@@ -26,6 +30,7 @@
             <template #right-icon>
               <van-tag type="primary" plain v-if="cat.isSystem">系统预设</van-tag>
               <van-tag type="warning" plain v-else>自定义</van-tag>
+              <van-icon name="arrow" class="cell-arrow" />
             </template>
           </van-cell>
           <template #right>
@@ -55,7 +60,16 @@
           <span class="confirm" @click="onConfirmAdd">保存</span>
         </div>
         
-        <van-field v-model="newCatName" placeholder="输入分类名称 (例如：宠物)" />
+        <van-field v-model="newCatName" label="分类名称" placeholder="输入分类名称 (如：宠物)" />
+        <van-field v-model="newCatBudget" label="独立预算" type="number" placeholder="选填本分类月度限额" />
+        <van-field 
+          v-model="newCatKeywords" 
+          label="匹配关键字" 
+          type="textarea" 
+          rows="2" 
+          autosize 
+          placeholder="导入自动记账用，如：猫粮,狗粮,医院 (逗号分隔)" 
+        />
         
         <div class="icon-picker">
           <div class="section-title">选择图标</div>
@@ -73,6 +87,12 @@
         </div>
       </div>
     </van-popup>
+
+    <!-- 编辑特定分类配置弹窗 (主要用于设置预算和修改关键字) -->
+    <van-dialog v-model:show="showEditDialog" title="分类设置" show-cancel-button @confirm="onConfirmEdit">
+      <van-field v-model="editingCat.budgetLimit" label="月度预算" type="number" placeholder="选填，如: 2000" />
+      <van-field v-model="editingCat.keywordsStr" label="匹配关键字" type="textarea" rows="2" autosize placeholder="逗号分隔" />
+    </van-dialog>
   </div>
 </template>
 
@@ -87,8 +107,11 @@ const store = useRecordStore()
 
 const activeType = ref<1 | 2>(1)
 const showAdd = ref(false)
+const showEditDialog = ref(false)
 
 const newCatName = ref('')
+const newCatBudget = ref('')
+const newCatKeywords = ref('')
 const newCatIcon = ref('apps-o')
 
 // 后续可以引入图标库，先提供常见的 Vant 图标
@@ -127,19 +150,49 @@ const onConfirmAdd = () => {
     return
   }
   
+  const kwList = newCatKeywords.value.split(/[,，]/).map(k => k.trim()).filter(k => k.length > 0)
+  
   const newCat: Category = {
     id: `c_custom_${Date.now()}`,
     name: newCatName.value.trim(),
     icon: newCatIcon.value,
     type: activeType.value,
     sort: 99,
-    isSystem: false
+    isSystem: false,
+    keywords: kwList.length > 0 ? kwList : undefined,
+    budgetLimit: newCatBudget.value ? parseFloat(newCatBudget.value) : undefined
   }
   
   store.categories.push(newCat)
   showToast('添加成功')
   showAdd.value = false
   newCatName.value = ''
+  newCatBudget.value = ''
+  newCatKeywords.value = ''
+}
+
+// ------ 编辑已有分类逻辑 ------
+const editingCat = ref<{id: string, budgetLimit: string, keywordsStr: string}>({id: '', budgetLimit: '', keywordsStr: ''})
+const openEditBudget = (cat: Category) => {
+  editingCat.value = {
+    id: cat.id,
+    budgetLimit: cat.budgetLimit ? String(cat.budgetLimit) : '',
+    keywordsStr: cat.keywords ? cat.keywords.join(', ') : ''
+  }
+  showEditDialog.value = true
+}
+
+const onConfirmEdit = () => {
+  const cat = store.categories.find(c => c.id === editingCat.value.id)
+  if (cat) {
+    const bgt = parseFloat(editingCat.value.budgetLimit)
+    cat.budgetLimit = !isNaN(bgt) && bgt > 0 ? bgt : undefined
+    
+    const kwList = editingCat.value.keywordsStr.split(/[,，]/).map(k => k.trim()).filter(k => k.length > 0)
+    cat.keywords = kwList.length > 0 ? kwList : undefined
+    
+    showToast('更新成功')
+  }
 }
 </script>
 
@@ -175,6 +228,17 @@ const onConfirmAdd = () => {
       &.is-income {
         color: #ff976a;
       }
+    }
+    
+    .cat-budget {
+      font-size: 12px;
+      color: var(--text-color-secondary);
+      margin-top: 4px;
+    }
+    
+    .cell-arrow {
+      margin-left: 8px;
+      color: var(--text-color-secondary);
     }
     
     .delete-button {
