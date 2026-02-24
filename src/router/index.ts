@@ -39,6 +39,11 @@ const routes: Array<RouteRecordRaw> = [
         path: '/search',
         name: 'Search',
         component: () => import('@/pages/search/search-index.vue')
+    },
+    {
+        path: '/import',
+        name: 'Import',
+        component: () => import('@/pages/import/import-index.vue')
     }
 ]
 

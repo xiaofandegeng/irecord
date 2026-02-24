@@ -40,6 +40,7 @@
             <van-switch v-model="accountStore.privacyMode" size="24" />
           </template>
         </van-cell>
+        <van-cell title="导入账单数据 (CSV)" is-link to="/import" />
         <van-cell title="导出数据 (CSV)" is-link @click="exportData" />
         <van-cell title="深色模式" center>
           <template #right-icon>
