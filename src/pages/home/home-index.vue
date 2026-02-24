@@ -1,11 +1,18 @@
 <template>
   <div class="home-container">
     <div class="top-section">
-      <div class="type-switch">
-        <van-tabs v-model:active="recordType" type="card" color="var(--van-primary-color)">
-          <van-tab title="支出" :name="1"></van-tab>
-          <van-tab title="收入" :name="2"></van-tab>
-        </van-tabs>
+      <div class="header-tools">
+        <div class="ledger-switch" @click="showLedgerPicker = true">
+          <van-icon :name="ledgerStore.currentLedger.icon" />
+          <span>{{ ledgerStore.currentLedger.name }}</span>
+          <van-icon name="arrow-down" class="arrow" />
+        </div>
+        <div class="type-switch">
+          <van-tabs v-model:active="recordType" type="card" color="var(--van-primary-color)">
+            <van-tab title="支出" :name="1"></van-tab>
+            <van-tab title="收入" :name="2"></van-tab>
+          </van-tabs>
+        </div>
       </div>
       
       <div class="amount-display">
@@ -100,6 +107,14 @@
       cancel-text="取消"
       @select="onSelectAccount" 
     />
+
+    <!-- 选择账本 -->
+    <van-action-sheet 
+      v-model:show="showLedgerPicker" 
+      :actions="ledgerActions" 
+      cancel-text="取消"
+      @select="onSelectLedger" 
+    />
   </div>
 </template>
 
@@ -108,10 +123,12 @@ import { ref, computed, watch } from 'vue'
 import { showToast } from 'vant'
 import { useRecordStore } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
+import { useLedgerStore } from '@/stores/ledger'
 import CustomKeyboard from '@/components/CustomKeyboard.vue'
 
 const store = useRecordStore()
 const accountStore = useAccountStore()
+const ledgerStore = useLedgerStore()
 
 // 状态
 const recordType = ref<1 | 2>(1)
@@ -131,6 +148,20 @@ const accountActions = computed(() => {
     color: selectedAccountId.value === a.id ? 'var(--van-primary-color)' : undefined
   }))
 })
+
+const showLedgerPicker = ref(false)
+const ledgerActions = computed(() => {
+  return ledgerStore.ledgers.map(l => ({
+    name: l.name,
+    value: l.id,
+    color: ledgerStore.currentLedgerId === l.id ? 'var(--van-primary-color)' : undefined
+  }))
+})
+
+const onSelectLedger = (action: any) => {
+  ledgerStore.switchLedger(action.value)
+  showLedgerPicker.value = false
+}
 
 const currentAccount = computed(() => {
   return accountStore.accounts.find(a => a.id === selectedAccountId.value)
@@ -175,7 +206,7 @@ const currentMonthExpense = computed(() => {
   const now = new Date()
   const year = now.getFullYear()
   const month = now.getMonth()
-  return store.records
+  return store.currentLedgerRecords
     .filter(r => r.type === 1)
     .filter(r => {
       const d = new Date(r.recordTime)
@@ -246,19 +277,44 @@ const submitRecord = () => {
     background-color: var(--van-primary-color);
     color: #fff;
     
-    .type-switch {
+    .header-tools {
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 24px;
       
-      :deep(.van-tabs__nav--card) {
-        border-color: #fff;
-        .van-tab {
-          color: #fff;
-          border-right-color: #fff;
-          &.van-tab--active {
-            color: var(--van-primary-color);
-            background-color: #fff;
+      .ledger-switch {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        background-color: rgba(255,255,255,0.15);
+        padding: 4px 10px;
+        border-radius: 12px;
+        
+        .van-icon {
+          margin-right: 4px;
+        }
+        .arrow {
+          margin-left: 2px;
+          margin-right: 0;
+          font-size: 12px;
+          opacity: 0.8;
+        }
+      }
+
+      .type-switch {
+        display: flex;
+        justify-content: center;
+        
+        :deep(.van-tabs__nav--card) {
+          border-color: #fff;
+          .van-tab {
+            color: #fff;
+            border-right-color: #fff;
+            &.van-tab--active {
+              color: var(--van-primary-color);
+              background-color: #fff;
+            }
           }
         }
       }

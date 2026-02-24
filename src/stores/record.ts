@@ -21,6 +21,7 @@ export interface RecordItem {
     createTime: number
     remark: string
     tags?: string[] // 新增：为单一流水追加多维度的标签阵列
+    ledgerId?: string // 新增：支持多账本隔离
 }
 
 // 默认内置分类
@@ -42,6 +43,14 @@ export const useRecordStore = defineStore('record', {
         globalTags: [] as string[] // 全局已被创建出来的所有标签库
     }),
     getters: {
+        currentLedgerRecords: (state) => {
+            // Need to defer ledger store get to avoid pinia init loops or simply use an action when needed.
+            // However, Pinia getters can use other stores if imported inside the getter.
+            const ledgerStore = JSON.parse(localStorage.getItem('ledger') || '{}')
+            const currentLedgerId = ledgerStore.currentLedgerId || 'ledger_default'
+
+            return state.records.filter(r => (r.ledgerId || 'ledger_default') === currentLedgerId)
+        },
         expenseCategories: (state) => state.categories.filter(c => c.type === 1).sort((a, b) => a.sort - b.sort),
         incomeCategories: (state) => state.categories.filter(c => c.type === 2).sort((a, b) => a.sort - b.sort)
     },
@@ -55,13 +64,17 @@ export const useRecordStore = defineStore('record', {
             this.budget = amount
         },
         addRecord(record: Omit<RecordItem, 'id' | 'createTime'>) {
-            const newRecord: RecordItem = {
-                ...record,
-                id: crypto.randomUUID(),
-                createTime: Date.now()
-            }
-            // 插入到最前面
-            this.records.unshift(newRecord)
+            import('./ledger').then(module => {
+                const ledgerStore = module.useLedgerStore()
+                const newRecord: RecordItem = {
+                    ...record,
+                    id: crypto.randomUUID(),
+                    createTime: Date.now(),
+                    ledgerId: record.ledgerId || ledgerStore.currentLedgerId // 绑定到当前所在账本
+                }
+                // 插入到最前面
+                this.records.unshift(newRecord)
+            })
 
             // 同步更新资产账户余额
             if (record.accountId) {

@@ -150,7 +150,7 @@ const toggleFilterTag = (tag: string) => {
 
 // 提取当前选中时长的数据
 const filteredRecords = computed(() => {
-  return store.records.filter((r: RecordItem) => {
+  return store.currentLedgerRecords.filter((r: RecordItem) => {
     // 基础过滤
     if (r.type !== recordType.value) return false
     

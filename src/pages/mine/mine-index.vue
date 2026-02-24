@@ -44,10 +44,11 @@
     
     <div class="settings-list">
       <van-cell-group inset>
+        <van-cell title="多账本管理 (隔离独立数据)" is-link to="/ledger-manage" />
         <van-cell title="月度总预算" is-link :value="store.budget > 0 ? `¥ ${store.budget}` : '去设置'" @click="showBudget = true" />
         <van-cell title="周期自动记账 (定投/房租)" is-link to="/recurring-manage" />
         <van-cell title="资产账户管理" is-link to="/account-manage" />
-        <van-cell title="数据总计" :value="`${store.records.length} 笔`" />
+        <van-cell title="数据总计" :value="`${store.currentLedgerRecords.length} 笔`" />
         <van-cell title="自定义分类配置" is-link to="/category-manage" />
       </van-cell-group>
       
@@ -107,7 +108,7 @@ const overBudgetCategories = computed(() => {
   const currentYear = now.getFullYear()
   
   // 仅计算本月的支出
-  const monthRecords = store.records.filter(r => {
+  const monthRecords = store.currentLedgerRecords.filter(r => {
     if (r.type !== 1) return false
     const d = new Date(r.recordTime)
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear
@@ -141,8 +142,8 @@ const overBudgetCategories = computed(() => {
 
 // 坚持天数简单计算(以第一笔记录为准)
 const totalDays = computed(() => {
-  if (store.records.length === 0) return 0
-  const firstRecord = store.records[store.records.length - 1]
+  if (store.currentLedgerRecords.length === 0) return 0
+  const firstRecord = store.currentLedgerRecords[store.currentLedgerRecords.length - 1]
   const diffTime = Math.abs(Date.now() - firstRecord.createTime)
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   return diffDays
@@ -151,7 +152,7 @@ const totalDays = computed(() => {
 const isDarkMode = ref(false)
 
 const exportData = () => {
-  if (store.records.length === 0) {
+  if (store.currentLedgerRecords.length === 0) {
     showToast('暂无数据可导出')
     return
   }
@@ -160,7 +161,7 @@ const exportData = () => {
   let csvContent = "data:text/csv;charset=utf-8,"
   csvContent += "时间,类型,金额,分类,备注\n"
   
-  store.records.forEach(r => {
+  store.currentLedgerRecords.forEach(r => {
     const date = new Date(r.recordTime).toLocaleString()
     const type = r.type === 1 ? '支出' : '收入'
     const cat = store.categories.find(c => c.id === r.categoryId)?.name || '未知'
@@ -194,10 +195,10 @@ const toggleTheme = (val: boolean) => {
 const clearAll = () => {
   showConfirmDialog({
     title: '危险操作',
-    message: '确认清空所有记账数据吗？清空后无法恢复。',
+    message: '确认清空当前账本所有记账数据吗？清空后无法恢复。',
     confirmButtonColor: '#ee0a24'
   }).then(() => {
-    store.records = []
+    store.records = store.records.filter(r => r.ledgerId !== store.currentLedgerRecords[0]?.ledgerId && r.ledgerId !== 'ledger_default')
     showToast('数据已清空')
   }).catch(() => {})
 }

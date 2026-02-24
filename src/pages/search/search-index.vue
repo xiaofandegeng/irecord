@@ -79,10 +79,9 @@ const accountStore = useAccountStore()
 const keyword = ref('')
 
 const filteredRecords = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  if (!kw) return []
-  
-  return store.records.filter(r => {
+  if (!keyword.value) return []
+  const kw = keyword.value.toLowerCase()
+  return store.currentLedgerRecords.filter(r => {
     const remarkMatch = (r.remark || '').toLowerCase().includes(kw)
     const amountMatch = String(r.amount).includes(kw)
     const catMatch = getCategoryName(r.categoryId).toLowerCase().includes(kw)

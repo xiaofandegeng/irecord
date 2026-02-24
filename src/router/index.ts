@@ -47,9 +47,15 @@ const routes: Array<RouteRecordRaw> = [
     },
     {
         path: '/recurring-manage',
-        name: 'recurring-manage',
+        name: 'RecurringManage',
         component: () => import('@/pages/recurring/recurring-manage.vue'),
-        meta: { title: '周期记账', keepAlive: false }
+        meta: { title: '周期记账' }
+    },
+    {
+        path: '/ledger-manage',
+        name: 'LedgerManage',
+        component: () => import('@/pages/ledger/ledger-manage.vue'),
+        meta: { title: '账本管理' }
     }
 ]
 

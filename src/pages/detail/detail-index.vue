@@ -110,8 +110,8 @@ const goSearch = () => {
   router.push('/search')
 }
 
-// 取所有记账记录
-const allRecords = computed(() => store.records)
+// 取当前账本的所有记账记录
+const allRecords = computed(() => store.currentLedgerRecords)
 
 // 获取分类信息辅助函数
 const getCategoryName = (id: string) => {
