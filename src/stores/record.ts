@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { recordApi } from '@/api/record'
 
 export interface Category {
     id: string
@@ -25,6 +26,7 @@ export interface RecordItem {
     goalId?: string // 新增：支持计入存钱目标
     reimbursable?: boolean // 新增：是否可报销
     reimbursableId?: string // 新增：如果是一笔报销收款入账，关联的原始支出的ID
+    creatorId?: string // 新增：记录录入人的用户ID（面向家庭共享场景）
 }
 
 // 默认内置分类
@@ -66,17 +68,29 @@ export const useRecordStore = defineStore('record', {
         setBudget(amount: number) {
             this.budget = amount
         },
-        addRecord(record: Omit<RecordItem, 'id' | 'createTime'>) {
-            import('./ledger').then(module => {
+        async addRecord(record: Omit<RecordItem, 'id' | 'createTime'>) {
+            import('./ledger').then(async module => {
                 const ledgerStore = module.useLedgerStore()
-                const newRecord: RecordItem = {
+                let newRecord: RecordItem = {
                     ...record,
                     id: crypto.randomUUID(),
                     createTime: Date.now(),
                     ledgerId: record.ledgerId || ledgerStore.currentLedgerId // 绑定到当前所在账本
                 }
-                // 插入到最前面
-                this.records.unshift(newRecord)
+
+                try {
+                    // 对接 Mock API 进行网络请求，模拟写入服务端
+                    const responseRecord = await recordApi.add(newRecord)
+                    if (responseRecord) {
+                        newRecord = responseRecord;
+                    }
+                    // 插入到最前面
+                    this.records.unshift(newRecord)
+                } catch (e) {
+                    console.error('Failed to add record via API', e)
+                    // 为了保证单机演示依然顺畅，这里 fallback
+                    this.records.unshift(newRecord)
+                }
             })
 
             // 同步更新资产账户余额
@@ -96,9 +110,15 @@ export const useRecordStore = defineStore('record', {
                 })
             }
         },
-        deleteRecord(id: string) {
+        async deleteRecord(id: string) {
             const idx = this.records.findIndex(r => r.id === id)
             if (idx !== -1) {
+                try {
+                    // 请求服务端删除
+                    await recordApi.remove(id)
+                } catch (e) {
+                    console.warn('API remove failed, proceeding with local remove', e)
+                }
                 const deleted = this.records[idx]
                 // 同步回滚资产账户余额
                 if (deleted.accountId) {
