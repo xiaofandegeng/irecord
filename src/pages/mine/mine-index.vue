@@ -2,10 +2,11 @@
   <div class="mine-container">
     <div class="user-card">
       <div class="avatar">
-        <van-icon name="smile" size="40" color="#fff" />
+        <van-image v-if="userStore.userInfo?.avatar" round width="60" height="60" :src="userStore.userInfo.avatar" />
+        <van-icon v-else name="smile" size="40" color="#fff" />
       </div>
       <div class="info">
-        <div class="name">记账达人</div>
+        <div class="name">{{ userStore.userInfo?.username || '记账达人' }}</div>
         <div class="desc">已经坚持记账 {{ totalDays }} 天</div>
       </div>
     </div>
@@ -105,7 +106,8 @@
       <div class="space"></div>
       
       <van-cell-group inset>
-        <van-cell title="清空所有数据" is-link class="danger-text" @click="clearAll" />
+        <van-cell title="退出登录" is-link class="danger-text" @click="handleLogout" />
+        <van-cell title="清空所有单机数据" is-link class="danger-text" @click="clearAll" />
       </van-cell-group>
     </div>
 
@@ -124,12 +126,14 @@ import { useRecordStore } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
 import { useGoalStore } from '@/stores/goal'
 import { useDebtStore } from '@/stores/debt'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const store = useRecordStore()
 const accountStore = useAccountStore()
 const goalStore = useGoalStore()
 const debtStore = useDebtStore()
+const userStore = useUserStore()
 
 const showBudget = ref(false)
 const tempBudget = ref(store.budget ? String(store.budget) : '')
@@ -239,6 +243,16 @@ const clearAll = () => {
   }).then(() => {
     store.records = store.records.filter(r => r.ledgerId !== store.currentLedgerRecords[0]?.ledgerId && r.ledgerId !== 'ledger_default')
     showToast('数据已清空')
+  }).catch(() => {})
+}
+
+const handleLogout = () => {
+  showConfirmDialog({
+    title: '退出登录',
+    message: '确认要退出当前账号吗？'
+  }).then(() => {
+    userStore.logout()
+    router.replace('/login')
   }).catch(() => {})
 }
 </script>

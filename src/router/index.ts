@@ -6,6 +6,12 @@ const routes: Array<RouteRecordRaw> = [
         redirect: '/home'
     },
     {
+        path: '/login',
+        name: 'Login',
+        component: () => import('@/pages/auth/login-index.vue'),
+        meta: { requiresAuth: false }
+    },
+    {
         path: '/home',
         name: 'Home',
         component: () => import('@/pages/home/home-index.vue')
@@ -86,6 +92,23 @@ const routes: Array<RouteRecordRaw> = [
 const router = createRouter({
     history: createWebHashHistory(),
     routes
+})
+
+router.beforeEach((to, _from, next) => {
+    // We import dynamically to avoid initialization issues before pinia is ready
+    import('@/stores/user').then(module => {
+        const userStore = module.useUserStore()
+
+        if (to.path !== '/login' && !userStore.isLoggedIn) {
+            // If going somewhere other than login and not logged in, redirect to login
+            next('/login')
+        } else if (to.path === '/login' && userStore.isLoggedIn) {
+            // If going to login but already logged in, redirect to home
+            next('/home')
+        } else {
+            next()
+        }
+    })
 })
 
 export default router
