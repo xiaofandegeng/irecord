@@ -14,7 +14,7 @@
         <div class="sub-label">已存入 ¥ {{ store.totalCurrent.toFixed(2) }}</div>
       </div>
 
-      <van-empty v-if="store.goals.length === 0" description="暂无心愿单，快去定个小目标吧！" />
+      <van-empty v-if="store.goals.length === 0" image="search" description="暂无心愿单，快去定个小目标吧！" />
 
       <div v-for="goal in store.goals" :key="goal.id" class="goal-card">
         <div class="header">

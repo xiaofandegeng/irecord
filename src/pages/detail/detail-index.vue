@@ -70,7 +70,7 @@
         </div>
       </transition-group>
       <div v-else class="empty-state">
-        <van-empty description="暂无账单数据" />
+        <van-empty image="search" description="暂无账单数据" />
       </div>
     </div>
 

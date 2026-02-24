@@ -511,6 +511,11 @@ const submitRecord = () => {
           font-size: 12px;
         }
         
+        &:active {
+          transform: scale(0.92);
+          opacity: 0.8;
+        }
+        
         &.active {
           .icon-wrap {
             background-color: var(--van-primary-color);

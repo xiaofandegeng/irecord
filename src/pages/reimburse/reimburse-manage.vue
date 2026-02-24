@@ -47,7 +47,7 @@
             </template>
           </van-swipe-cell>
         </div>
-        <van-empty v-else description="暂无待报销项目" />
+        <van-empty v-else image="search" description="暂无待报销项目" />
       </van-tab>
       
       <van-tab title="已报销" name="done">
@@ -75,7 +75,7 @@
             </template>
           </van-cell>
         </div>
-        <van-empty v-else description="暂无已报销项目" />
+        <van-empty v-else image="search" description="暂无已报销项目" />
       </van-tab>
     </van-tabs>
 

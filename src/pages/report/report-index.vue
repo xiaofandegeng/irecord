@@ -37,6 +37,13 @@
 
     <!-- 图表区 -->
     <div class="chart-section" v-if="chartData.length > 0">
+      <div class="chart-title">收支趋势</div>
+      <ChartLine 
+        :xAxisData="lineXAxisData" 
+        :seriesData="lineSeriesData" 
+        :color="recordType === 1 ? '#1989fa' : '#ff976a'" 
+      />
+      <div class="chart-title" style="margin-top: 16px;">分类占比</div>
       <ChartPie :data="chartData" />
     </div>
     
@@ -61,7 +68,7 @@
     </div>
     
     <div v-else class="empty-state">
-      <van-empty description="本月暂无数据" />
+      <van-empty image="error" description="本月暂无数据" />
     </div>
 
     <!-- 日期选择器 -->
@@ -90,6 +97,7 @@ import { ref, computed, watch } from 'vue'
 import { useRecordStore, type RecordItem } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
 import ChartPie from '@/components/ChartPie.vue'
+import ChartLine from '@/components/ChartLine.vue'
 
 const store = useRecordStore()
 const accountStore = useAccountStore()
@@ -196,6 +204,36 @@ const chartData = computed(() => {
 const rankedData = computed(() => {
   return [...chartData.value].sort((a, b) => b.value - a.value)
 })
+
+// 折线图数据 (按天或按月聚合)
+const lineXAxisData = computed(() => {
+  if (dateType.value === 'month') {
+    const [yearStr, monthStr] = pickerValue.value
+    // 计算当月天数
+    const days = new Date(Number(yearStr), Number(monthStr), 0).getDate()
+    return Array.from({ length: days }, (_, i) => `${i + 1}日`)
+  } else {
+    return Array.from({ length: 12 }, (_, i) => `${i + 1}月`)
+  }
+})
+
+const lineSeriesData = computed(() => {
+  const data = new Array(lineXAxisData.value.length).fill(0)
+  
+  filteredRecords.value.forEach(r => {
+    const d = new Date(r.recordTime)
+    if (dateType.value === 'month') {
+      const dayIndex = d.getDate() - 1 // 1号对应索引0
+      data[dayIndex] += r.amount
+    } else {
+      const monthIndex = d.getMonth() // 0-11
+      data[monthIndex] += r.amount
+    }
+  })
+  
+  // 保留两位小数
+  return data.map(v => Number(v.toFixed(2)))
+})
 const maxAmount = computed(() => {
   return rankedData.value.length > 0 ? rankedData.value[0].value : 1
 })
@@ -280,6 +318,14 @@ const maxAmount = computed(() => {
     padding: 16px 0;
     margin-bottom: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    
+    .chart-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-color-primary);
+      padding: 0 16px;
+      margin-bottom: 8px;
+    }
   }
   
   .rank-list {

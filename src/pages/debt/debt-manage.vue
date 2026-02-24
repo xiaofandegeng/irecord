@@ -45,7 +45,7 @@
               </template>
             </van-swipe-cell>
           </van-cell-group>
-          <van-empty v-else description="暂无借出记录" />
+          <van-empty v-else image="search" description="暂无借出记录" />
         </div>
       </van-tab>
 
@@ -86,7 +86,7 @@
               </template>
             </van-swipe-cell>
           </van-cell-group>
-          <van-empty v-else description="暂无借入记录" />
+          <van-empty v-else image="search" description="暂无借入记录" />
         </div>
       </van-tab>
     </van-tabs>

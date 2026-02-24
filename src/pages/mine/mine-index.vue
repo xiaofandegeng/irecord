@@ -283,11 +283,14 @@ const clearAll = () => {
   }
   
   .asset-card {
-    background-color: #fff;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     margin: 0 16px 16px;
     border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     z-index: 10;
     
     .asset-row {
@@ -299,6 +302,12 @@ const clearAll = () => {
         display: flex;
         flex-direction: column;
         align-items: center;
+        transition: all 0.2s;
+        
+        &:active {
+          transform: scale(0.95);
+          opacity: 0.8;
+        }
         
         .label {
           font-size: 13px;
@@ -361,6 +370,12 @@ const clearAll = () => {
           .g-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .g-progress { font-size: 11px; color: var(--text-color-secondary); margin-bottom: 6px; }
           .g-current { color: var(--text-color-primary); font-weight: bold; }
+        }
+        
+        transition: all 0.2s;
+        &:active {
+          transform: scale(0.95);
+          opacity: 0.8;
         }
       }
     }

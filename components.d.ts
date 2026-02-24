@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ChartLine: typeof import('./src/components/ChartLine.vue')['default']
     ChartPie: typeof import('./src/components/ChartPie.vue')['default']
     CustomKeyboard: typeof import('./src/components/CustomKeyboard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
