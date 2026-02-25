@@ -82,6 +82,12 @@ const routes: Array<RouteRecordRaw> = [
         meta: { title: '报销管理' }
     },
     {
+        path: '/category-manage',
+        name: 'CategoryManage',
+        component: () => import('@/pages/category/category-manage.vue'),
+        meta: { title: '分类管理' }
+    },
+    {
         path: '/debt-manage',
         name: 'DebtManage',
         component: () => import('@/pages/debt/debt-manage.vue'),

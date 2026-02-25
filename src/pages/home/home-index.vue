@@ -7,20 +7,28 @@
           <span>{{ ledgerStore.currentLedger.name }}</span>
           <van-icon name="arrow-down" class="arrow" />
         </div>
-        <div class="type-switch">
-          <van-tabs v-model:active="recordType" type="card" color="var(--van-primary-color)">
-            <van-tab title="支出" :name="1"></van-tab>
-            <van-tab title="收入" :name="2"></van-tab>
-          </van-tabs>
+        
+        <!-- iCost 风格切换器 -->
+        <div class="type-switch-pill">
+          <div 
+            class="pill-item" 
+            :class="{ active: recordType === 1 }" 
+            @click="recordType = 1"
+          >支出</div>
+          <div 
+            class="pill-item" 
+            :class="{ active: recordType === 2 }" 
+            @click="recordType = 2"
+          >收入</div>
         </div>
       </div>
       
-      <div class="amount-display">
-        <span class="currency" @click="showCurrencyPicker = true">
+      <div class="amount-display" @click="showKeyboard = true">
+        <span class="currency" @click.stop="showCurrencyPicker = true">
           {{ currentCurrencySymbol }} <van-icon name="arrow-down" style="font-size: 14px;" />
         </span>
-        <span class="value">{{ amountVal }}</span>
-        <van-icon name="star-o" class="save-tpl-btn" @click="showSaveTemplate = true" v-if="amountVal !== '0'" />
+        <span class="value" :class="{ 'is-placeholder': amountVal === '0' }">{{ amountVal }}</span>
+        <van-icon name="star-o" class="save-tpl-btn" @click.stop="showSaveTemplate = true" v-if="amountVal !== '0'" />
       </div>
 
       <!-- 快捷模板 (Template Bar) -->
@@ -40,9 +48,10 @@
       </div>
       
       <div class="info-bar">
-        <div class="info-item">
+        <!-- 日期选择 -->
+        <div class="info-item" @click="showCalendar = true">
           <van-icon name="clock-o" />
-          <span>今天</span>
+          <span>{{ displayDate }}</span>
         </div>
         <div class="info-item" @click="showAccountPicker = true">
           <van-icon name="gold-coin-o" />
@@ -130,28 +139,45 @@
       </div>
     </div>
 
-    <div class="category-section">
+    <div class="category-section" @click="showKeyboard = false">
       <div class="category-grid">
         <div 
           v-for="cat in currentCategories" 
           :key="cat.id"
           class="category-item"
           :class="{ active: selectedCategoryId === cat.id }"
-          @click="selectCategory(cat.id)"
+          @click.stop="selectCategory(cat.id)"
         >
           <div class="icon-wrap">
             <van-icon :name="cat.icon" size="24" />
           </div>
           <span class="name">{{ cat.name }}</span>
         </div>
+        
+        <!-- 管理分类入口 -->
+        <div class="category-item" @click.stop="openCategoryManage">
+          <div class="icon-wrap" style="background-color: transparent; border: 1px dashed var(--text-color-secondary);">
+            <van-icon name="setting-o" size="24" color="var(--text-color-secondary)"/>
+          </div>
+          <span class="name" style="color: var(--text-color-secondary)">设置</span>
+        </div>
       </div>
     </div>
 
-    <CustomKeyboard 
-      v-model="amountVal"
-      class="fixed-keyboard"
-      @confirm="submitRecord"
-    />
+    <van-popup
+      v-model:show="showKeyboard"
+      position="bottom"
+      :overlay="false"
+      class="keyboard-popup"
+    >
+      <CustomKeyboard 
+        v-model="amountVal"
+        @confirm="submitRecord"
+      />
+    </van-popup>
+
+    <!-- 日历选择器 -->
+    <van-calendar v-model:show="showCalendar" @confirm="onConfirmDate" :min-date="minDate" :max-date="maxDate" color="var(--van-primary-color)" />
 
     <!-- 选择账户 -->
     <van-action-sheet 
@@ -197,10 +223,15 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import dayjs from 'dayjs'
+import isToday from 'dayjs/plugin/isToday'
 import { showToast, showLoadingToast, closeToast, showConfirmDialog } from 'vant'
 import { useRecordStore } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
 import { useLedgerStore } from '@/stores/ledger'
+
+dayjs.extend(isToday)
 import { useGoalStore } from '@/stores/goal'
 import { useTemplateStore, type TemplateItem } from '@/stores/template'
 import CustomKeyboard from '@/components/CustomKeyboard.vue'
@@ -210,8 +241,10 @@ const accountStore = useAccountStore()
 const ledgerStore = useLedgerStore()
 const goalStore = useGoalStore()
 const templateStore = useTemplateStore()
+const router = useRouter()
 
 // 状态
+const showKeyboard = ref(false)
 const recordType = ref<1 | 2>(1)
 const amountVal = ref('0')
 const remark = ref('')
@@ -220,6 +253,29 @@ const newTagInput = ref('')
 const selectedTags = ref<string[]>([])
 const isReimbursable = ref(false)
 const fileList = ref<any[]>([])
+
+// 日期管理
+const showCalendar = ref(false)
+const selectedDate = ref<Date>(new Date()) // 默认今天
+const minDate = new Date(2010, 0, 1)
+const maxDate = new Date()
+
+const displayDate = computed(() => {
+  if (dayjs(selectedDate.value).isToday()) {
+    return '今天'
+  }
+  return dayjs(selectedDate.value).format('MM-DD')
+})
+
+const onConfirmDate = (date: Date) => {
+  selectedDate.value = date
+  showCalendar.value = false
+}
+
+// 跳转设置分类
+const openCategoryManage = () => {
+  router.push('/category-manage')
+}
 
 const currencyOptions = [
   { text: '人民币 (CNY)', value: 'CNY', symbol: '¥', defaultRate: 1 },
@@ -472,8 +528,8 @@ const submitRecord = () => {
     type: recordType.value,
     amount: amount,
     categoryId: selectedCategoryId.value,
-    accountId: selectedAccountId.value, // 使用手动选中的关联账户
-    recordTime: Date.now(),
+    accountId: selectedAccountId.value, 
+    recordTime: selectedDate.value.getTime(), // 使用用户选择的历史时间
     remark: remark.value,
     tags: [...selectedTags.value],
     goalId: recordType.value === 1 && selectedGoalId.value ? selectedGoalId.value : undefined, // 如果选了心愿单且是支出，绑定
@@ -493,7 +549,8 @@ const submitRecord = () => {
   remark.value = ''
   selectedTags.value = []
   newTagInput.value = ''
-  selectedGoalId.value = '' // 清除刚才绑定的心愿单
+  selectedDate.value = new Date() // 记完归位到今天
+  selectedGoalId.value = ''
   isReimbursable.value = false // 重置待报销状态
   fileList.value = [] // 清空附件
   selectedCurrency.value = ledgerStore.currentLedger.baseCurrency || 'CNY'
@@ -537,35 +594,48 @@ const submitRecord = () => {
         }
       }
 
-      .type-switch {
+      .type-switch-pill {
         display: flex;
-        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.15);
+        border-radius: 16px;
+        padding: 2px;
         
-        :deep(.van-tabs__nav--card) {
-          border-color: #fff;
-          .van-tab {
-            color: #fff;
-            border-right-color: #fff;
-            &.van-tab--active {
-              color: var(--van-primary-color);
-              background-color: var(--bg-color-primary);
-            }
+        .pill-item {
+          padding: 4px 16px;
+          border-radius: 14px;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.25s ease;
+          color: rgba(255, 255, 255, 0.7);
+          
+          &.active {
+            background-color: #fff;
+            color: var(--van-primary-color);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
           }
         }
       }
     }
     
     .amount-display {
-      font-size: 36px;
-      font-weight: 500;
+      font-size: 44px;
+      font-weight: 600;
       display: flex;
       align-items: baseline;
-      margin-bottom: 16px;
+      margin-bottom: 24px;
       position: relative;
       
       .currency {
         font-size: 24px;
-        margin-right: 4px;
+        margin-right: 8px;
+        font-weight: 500;
+      }
+      
+      .value {
+        line-height: 1.1;
+        &.is-placeholder {
+          opacity: 0.8;
+        }
       }
 
       .save-tpl-btn {
@@ -798,11 +868,10 @@ const submitRecord = () => {
     }
   }
   
-  .fixed-keyboard {
-    position: sticky;
-    bottom: 0;
-    width: 100%;
-    z-index: 100;
+  .keyboard-popup {
+    background: transparent;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+    // 隐藏 popup 自带的背景色以贴合自定义键盘的透明边缘
   }
 }
 </style>

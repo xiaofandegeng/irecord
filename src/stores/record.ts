@@ -154,6 +154,22 @@ export const useRecordStore = defineStore('record', {
         }
     },
     actions: {
+        addCategory(category: Omit<Category, 'id' | 'sort' | 'isSystem'>) {
+            const list = category.type === 1 ? this.expenseCategories : this.incomeCategories;
+            const sort = list.length > 0 ? list[list.length - 1].sort + 1 : 1;
+            this.categories.push({
+                ...category,
+                id: `c_custom_${Date.now()}`,
+                sort,
+                isSystem: false
+            });
+        },
+        removeCategory(categoryId: string, type: 1 | 2) {
+            const idx = this.categories.findIndex(c => c.id === categoryId && c.type === type);
+            if (idx !== -1 && !this.categories[idx].isSystem) {
+                this.categories.splice(idx, 1);
+            }
+        },
         addTag(tag: string) {
             if (tag && !this.globalTags.includes(tag)) {
                 this.globalTags.push(tag)
