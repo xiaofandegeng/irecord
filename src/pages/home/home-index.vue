@@ -1,14 +1,16 @@
 <template>
-  <div class="home-container">
-    <div class="top-section">
+  <div class="icost-home-container">
+    <!-- 顶部 Header 区 -->
+    <div class="header-section">
       <div class="header-tools">
+        <!-- 账本切换 -->
         <div class="ledger-switch" @click="showLedgerPicker = true">
           <van-icon :name="ledgerStore.currentLedger.icon" />
           <span>{{ ledgerStore.currentLedger.name }}</span>
           <van-icon name="arrow-down" class="arrow" />
         </div>
         
-        <!-- iCost 风格切换器 -->
+        <!-- iCost 风格中心切换器 -->
         <div class="type-switch-pill">
           <div 
             class="pill-item" 
@@ -21,17 +23,16 @@
             @click="recordType = 2"
           >收入</div>
         </div>
+        
+        <div class="right-placeholder">
+          <!-- 预留右侧按钮位置，目前可用以展示预算极简提示或什么都不放 -->
+        </div>
       </div>
-      
-      <div class="amount-display" @click="showKeyboard = true">
-        <span class="currency" @click.stop="showCurrencyPicker = true">
-          {{ currentCurrencySymbol }} <van-icon name="arrow-down" style="font-size: 14px;" />
-        </span>
-        <span class="value" :class="{ 'is-placeholder': amountVal === '0' }">{{ amountVal }}</span>
-        <van-icon name="star-o" class="save-tpl-btn" @click.stop="showSaveTemplate = true" v-if="amountVal !== '0'" />
-      </div>
+    </div>
 
-      <!-- 快捷模板 (Template Bar) -->
+    <!-- 中间：分类滚动区 -->
+    <div class="category-scroll-area">
+      <!-- 如果有模板，也可以像 tags 一样横向滑动展现在顶部 -->
       <div class="template-bar" v-if="currentTypeTemplates.length > 0">
         <div class="template-scroll">
           <van-tag
@@ -46,178 +47,110 @@
           </van-tag>
         </div>
       </div>
-      
-      <div class="info-bar">
-        <!-- 日期选择 -->
-        <div class="info-item" @click="showCalendar = true">
-          <van-icon name="clock-o" />
-          <span>{{ displayDate }}</span>
-        </div>
-        <div class="info-item" @click="showAccountPicker = true">
-          <van-icon name="gold-coin-o" />
-          <span>{{ currentAccount?.name || '选择账户' }}</span>
-        </div>
-        <div class="info-item" @click="showGoalPicker = true" v-if="recordType === 1 && goalStore.goals.length > 0">
-          <van-icon name="flag-o" />
-          <span>{{ currentGoal?.name || '不存入心愿' }}</span>
-        </div>
-        <!-- 报销开关 -->
-        <div class="info-item reimbursable-switch" v-if="recordType === 1">
-          <van-checkbox v-model="isReimbursable" shape="square" icon-size="14px" checked-color="var(--van-primary-color)">
-            <span style="color: #fff; font-size: 13px;">可报销</span>
-          </van-checkbox>
-        </div>
-        <!-- 汇率输入 -->
-        <div class="info-item" v-if="selectedCurrency !== (ledgerStore.currentLedger.baseCurrency || 'CNY')">
-          <van-icon name="exchange" />
-          <span>汇率:</span>
-          <input type="number" v-model="exchangeRate" style="width: 50px; background: transparent; border: none; border-bottom: 1px dashed rgba(255,255,255,0.4); color: #fff; outline: none; margin-left: 4px;" />
-        </div>
-        <div class="info-item remark-input">
-          <van-icon name="edit" />
-          <input type="text" v-model="remark" placeholder="写点备注..." />
-        </div>
-      </div>
-      
-      <!-- Tags Input -->
-      <div class="tags-bar">
-        <div class="tags-list" v-if="selectedTags.length > 0">
-          <van-tag 
-            v-for="t in selectedTags" 
-            :key="t" 
-            closeable 
-            size="medium" 
-            type="primary" 
-            @close="removeTag(t)"
-          >
-            #{{ t }}
-          </van-tag>
-        </div>
-        <div class="tag-input-wrap">
-          <van-icon name="label-o" />
-          <input 
-            type="text" 
-            v-model="newTagInput" 
-            placeholder="打个标签 (空格/回车确认)" 
-            @keydown.enter="addTag"
-            @keydown.space.prevent="addTag"
-          />
-        </div>
-      </div>
-      
-      <!-- 多媒体凭证附件 与 小票识别 -->
-      <div class="attachments-bar" v-if="recordType === 1"> <!-- 改为仅支出时显示，且放宽条件，不仅金额>0时显示 -->
-        <div class="attach-title">
-          <van-icon name="photograph" /> 附加凭证小票 / 智能识别
-        </div>
-        <van-uploader 
-          v-model="fileList" 
-          multiple 
-          :max-count="3" 
-          :after-read="onAfterRead"
-        >
-          <div class="ocr-upload-btn">
-            <van-icon name="scan" size="24" />
-            <span>拍小票</span>
-          </div>
-        </van-uploader>
-      </div>
-      
-      <!-- 预算进度 -->
-      <div class="budget-bar" v-if="store.budget > 0">
-        <div class="budget-texts">
-          <span>本月剩余: {{ accountStore.privacyMode ? '****' : `¥ ${remainingBudget}` }}</span>
-          <span class="pct">{{ budgetProgress.toFixed(0) }}% 已用</span>
-        </div>
-        <van-progress 
-          :percentage="budgetProgress" 
-          :show-pivot="false" 
-          color="#ff976a" 
-          track-color="rgba(255,255,255,0.3)" 
-          stroke-width="6" 
-        />
-      </div>
-    </div>
 
-    <div class="category-section" @click="showKeyboard = false">
       <div class="category-grid">
         <div 
           v-for="cat in currentCategories" 
           :key="cat.id"
           class="category-item"
           :class="{ active: selectedCategoryId === cat.id }"
-          @click.stop="selectCategory(cat.id)"
+          @click="selectCategory(cat.id)"
         >
           <div class="icon-wrap">
-            <van-icon :name="cat.icon" size="24" />
+            <van-icon :name="cat.icon" size="26" />
           </div>
           <span class="name">{{ cat.name }}</span>
         </div>
         
         <!-- 管理分类入口 -->
-        <div class="category-item" @click.stop="openCategoryManage">
-          <div class="icon-wrap" style="background-color: transparent; border: 1px dashed var(--text-color-secondary);">
-            <van-icon name="setting-o" size="24" color="var(--text-color-secondary)"/>
+        <div class="category-item" @click="openCategoryManage">
+          <div class="icon-wrap dashed-wrap">
+            <van-icon name="setting-o" size="24" />
           </div>
-          <span class="name" style="color: var(--text-color-secondary)">设置</span>
+          <span class="name text-secondary">设置</span>
         </div>
       </div>
     </div>
 
-    <van-popup
-      v-model:show="showKeyboard"
-      position="bottom"
-      :overlay="false"
-      class="keyboard-popup"
-    >
-      <CustomKeyboard 
-        v-model="amountVal"
-        @confirm="submitRecord"
-      />
-    </van-popup>
+    <!-- 底部：固定操作与键盘区 -->
+    <div class="bottom-action-area">
+      <!-- 快捷工具行 (横向可滑动) -->
+      <div class="tools-row">
+        <div class="tool-pill" @click="showCalendar = true">
+          <van-icon name="clock-o" />
+          <span>{{ displayDate }}</span>
+        </div>
+        <div class="tool-pill" @click="showAccountPicker = true">
+          <van-icon name="gold-coin-o" />
+          <span>{{ currentAccount?.name || '选择账户' }}</span>
+        </div>
+        <div class="tool-pill" @click="showGoalPicker = true" v-if="recordType === 1 && goalStore.goals.length > 0">
+          <van-icon name="flag-o" />
+          <span>{{ currentGoal?.name || '心愿单' }}</span>
+        </div>
+        <div class="tool-pill" @click="showCurrencyPicker = true" v-if="selectedCurrency !== (ledgerStore.currentLedger.baseCurrency || 'CNY')">
+          <van-icon name="exchange" />
+          <span>{{ selectedCurrency }} 汇率:</span>
+          <input type="number" v-model="exchangeRate" class="inline-input" />
+        </div>
+        <!-- 报销开关 -->
+        <div class="tool-pill no-bg" v-if="recordType === 1">
+          <van-checkbox v-model="isReimbursable" shape="square" icon-size="14px" checked-color="var(--van-primary-color)">
+            <span class="checkbox-label">可报销</span>
+          </van-checkbox>
+        </div>
+        <!-- 存为模板按钮 -->
+        <div class="tool-pill" @click="showSaveTemplate = true" v-if="amountVal !== '0'">
+          <van-icon name="star-o" />
+          <span>设为模板</span>
+        </div>
+        <div class="tool-pill" v-if="recordType === 1">
+          <van-uploader v-model="fileList" multiple :max-count="3" :after-read="onAfterRead">
+            <div class="flex-center">
+              <van-icon name="photograph" />
+              <span style="margin-left:4px">小票/识别</span>
+            </div>
+          </van-uploader>
+        </div>
+      </div>
 
-    <!-- 日历选择器 -->
+      <!-- 核心栏: 类别、备注与金额展示 -->
+      <div class="input-bar">
+        <div class="selected-cat">
+          <div class="icon-indicator">
+            <van-icon :name="selectedCategoryData?.icon || 'apps-o'" size="20" />
+          </div>
+          <span class="name">{{ selectedCategoryData?.name || '默认' }}</span>
+        </div>
+        
+        <div class="remark-wrapper">
+          <input type="text" v-model="remark" placeholder="写点备注..." class="remark-input" />
+        </div>
+
+        <div class="amount-display-wrapper">
+          <span class="currency-symbol">{{ currentCurrencySymbol }}</span>
+          <span class="amount-value" :class="{'is-zero': amountVal === '0'}">{{ amountVal }}</span>
+        </div>
+      </div>
+
+      <!-- 常驻底部的键盘 -->
+      <div class="keyboard-wrapper">
+        <CustomKeyboard 
+          v-model="amountVal"
+          @confirm="submitRecord"
+        />
+      </div>
+    </div>
+
+    <!-- 各种弹出层与联动组件 -->
     <van-calendar v-model:show="showCalendar" @confirm="onConfirmDate" :min-date="minDate" :max-date="maxDate" color="var(--van-primary-color)" />
-
-    <!-- 选择账户 -->
-    <van-action-sheet 
-      v-model:show="showAccountPicker" 
-      :actions="accountActions" 
-      cancel-text="取消"
-      @select="onSelectAccount" 
-    />
-
-    <!-- 选择账本 -->
-    <van-action-sheet 
-      v-model:show="showLedgerPicker" 
-      :actions="ledgerActions" 
-      cancel-text="取消"
-      @select="onSelectLedger" 
-    />
-
-    <!-- 选择心愿单 -->
-    <van-action-sheet 
-      v-model:show="showGoalPicker" 
-      :actions="goalActions" 
-      cancel-text="不存入任何心愿单"
-      @select="onSelectGoal" 
-      @cancel="onCancelGoal"
-    />
-
-    <!-- 保存模板弹窗 -->
+    <van-action-sheet v-model:show="showAccountPicker" :actions="accountActions" cancel-text="取消" @select="onSelectAccount" />
+    <van-action-sheet v-model:show="showLedgerPicker" :actions="ledgerActions" cancel-text="取消" @select="onSelectLedger" />
+    <van-action-sheet v-model:show="showGoalPicker" :actions="goalActions" cancel-text="不存入任何心愿单" @select="onSelectGoal" @cancel="onCancelGoal" />
     <van-dialog v-model:show="showSaveTemplate" title="存为快速记账模板" show-cancel-button @confirm="onConfirmSaveTemplate">
       <van-field v-model="templateName" label="模板名称" placeholder="例如：每日早餐" />
     </van-dialog>
-
-    <!-- 多币种选择面板 -->
-    <van-action-sheet 
-      v-model:show="showCurrencyPicker" 
-      :actions="currencyActions" 
-      cancel-text="取消" 
-      close-on-click-action 
-      @cancel="showCurrencyPicker = false" 
-      @select="onSelectCurrency" 
-    />
+    <van-action-sheet v-model:show="showCurrencyPicker" :actions="currencyActions" cancel-text="取消" close-on-click-action @cancel="showCurrencyPicker = false" @select="onSelectCurrency" />
   </div>
 </template>
 
@@ -230,11 +163,11 @@ import { showToast, showLoadingToast, closeToast, showConfirmDialog } from 'vant
 import { useRecordStore } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
 import { useLedgerStore } from '@/stores/ledger'
-
-dayjs.extend(isToday)
 import { useGoalStore } from '@/stores/goal'
 import { useTemplateStore, type TemplateItem } from '@/stores/template'
 import CustomKeyboard from '@/components/CustomKeyboard.vue'
+
+dayjs.extend(isToday)
 
 const store = useRecordStore()
 const accountStore = useAccountStore()
@@ -244,26 +177,22 @@ const templateStore = useTemplateStore()
 const router = useRouter()
 
 // 状态
-const showKeyboard = ref(false)
 const recordType = ref<1 | 2>(1)
 const amountVal = ref('0')
 const remark = ref('')
 const selectedCategoryId = ref('')
-const newTagInput = ref('')
 const selectedTags = ref<string[]>([])
 const isReimbursable = ref(false)
 const fileList = ref<any[]>([])
 
 // 日期管理
 const showCalendar = ref(false)
-const selectedDate = ref<Date>(new Date()) // 默认今天
+const selectedDate = ref<Date>(new Date())
 const minDate = new Date(2010, 0, 1)
 const maxDate = new Date()
 
 const displayDate = computed(() => {
-  if (dayjs(selectedDate.value).isToday()) {
-    return '今天'
-  }
+  if (dayjs(selectedDate.value).isToday()) return '今天'
   return dayjs(selectedDate.value).format('MM-DD')
 })
 
@@ -272,7 +201,6 @@ const onConfirmDate = (date: Date) => {
   showCalendar.value = false
 }
 
-// 跳转设置分类
 const openCategoryManage = () => {
   router.push('/category-manage')
 }
@@ -292,29 +220,20 @@ const exchangeRate = ref(1)
 const selectedAccountId = ref('a1')
 const showAccountPicker = ref(false)
 
-const accountActions = computed(() => {
-  return accountStore.accounts.map(a => ({
-    name: a.name,
-    value: a.id,
-    color: selectedAccountId.value === a.id ? 'var(--van-primary-color)' : undefined
-  }))
-})
+const accountActions = computed(() => accountStore.accounts.map(a => ({
+  name: a.name, value: a.id, color: selectedAccountId.value === a.id ? 'var(--van-primary-color)' : undefined
+})))
 
 const showLedgerPicker = ref(false)
-const ledgerActions = computed(() => {
-  return ledgerStore.ledgers.map(l => ({
-    name: l.name,
-    value: l.id,
-    color: ledgerStore.currentLedgerId === l.id ? 'var(--van-primary-color)' : undefined
-  }))
-})
+const ledgerActions = computed(() => ledgerStore.ledgers.map(l => ({
+  name: l.name, value: l.id, color: ledgerStore.currentLedgerId === l.id ? 'var(--van-primary-color)' : undefined
+})))
 
 const onSelectLedger = (action: any) => {
   ledgerStore.switchLedger(action.value)
   showLedgerPicker.value = false
 }
 
-// 监视账本切换，预置基准货币
 watch(() => ledgerStore.currentLedgerId, () => {
   selectedCurrency.value = ledgerStore.currentLedger.baseCurrency || 'CNY'
   exchangeRate.value = 1
@@ -325,14 +244,9 @@ const currentCurrencySymbol = computed(() => {
   return c ? c.symbol : '¥'
 })
 
-const currencyActions = computed(() => {
-  return currencyOptions.map(c => ({
-    name: c.text,
-    value: c.value,
-    defaultRate: c.defaultRate,
-    color: selectedCurrency.value === c.value ? 'var(--van-primary-color)' : undefined
-  }))
-})
+const currencyActions = computed(() => currencyOptions.map(c => ({
+  name: c.text, value: c.value, defaultRate: c.defaultRate, color: selectedCurrency.value === c.value ? 'var(--van-primary-color)' : undefined
+})))
 
 const onSelectCurrency = (action: any) => {
   selectedCurrency.value = action.value
@@ -340,10 +254,7 @@ const onSelectCurrency = (action: any) => {
   showCurrencyPicker.value = false
 }
 
-const currentAccount = computed(() => {
-  return accountStore.accounts.find(a => a.id === selectedAccountId.value)
-})
-
+const currentAccount = computed(() => accountStore.accounts.find(a => a.id === selectedAccountId.value))
 const onSelectAccount = (action: any) => {
   selectedAccountId.value = action.value
   showAccountPicker.value = false
@@ -352,13 +263,9 @@ const onSelectAccount = (action: any) => {
 // 心愿单
 const selectedGoalId = ref('')
 const showGoalPicker = ref(false)
-const goalActions = computed(() => {
-  return goalStore.goals.map(g => ({
-    name: g.name,
-    value: g.id,
-    color: selectedGoalId.value === g.id ? 'var(--van-primary-color)' : undefined
-  }))
-})
+const goalActions = computed(() => goalStore.goals.map(g => ({
+  name: g.name, value: g.id, color: selectedGoalId.value === g.id ? 'var(--van-primary-color)' : undefined
+})))
 const currentGoal = computed(() => goalStore.goals.find(g => g.id === selectedGoalId.value))
 
 const onSelectGoal = (action: any) => {
@@ -370,11 +277,8 @@ const onCancelGoal = () => {
   showGoalPicker.value = false
 }
 
-// 模板处理
-const currentTypeTemplates = computed(() => {
-  return templateStore.templates.filter(t => t.type === recordType.value)
-})
-
+// 模板
+const currentTypeTemplates = computed(() => templateStore.templates.filter(t => t.type === recordType.value))
 const showSaveTemplate = ref(false)
 const templateName = ref('')
 
@@ -384,15 +288,11 @@ const onConfirmSaveTemplate = () => {
     return
   }
   templateStore.addTemplate({
-    name: templateName.value,
-    type: recordType.value,
-    amount: parseFloat(amountVal.value),
-    categoryId: selectedCategoryId.value,
-    accountId: selectedAccountId.value,
-    remark: remark.value,
+    name: templateName.value, type: recordType.value, amount: parseFloat(amountVal.value),
+    categoryId: selectedCategoryId.value, accountId: selectedAccountId.value, remark: remark.value,
     tags: [...selectedTags.value]
   })
-  showToast('包存模板成功')
+  showToast('保存模板成功')
   templateName.value = ''
 }
 
@@ -403,24 +303,19 @@ const applyTemplate = (tpl: TemplateItem) => {
   if (tpl.accountId) selectedAccountId.value = tpl.accountId
   remark.value = tpl.remark
   if (tpl.tags) selectedTags.value = [...tpl.tags]
-  showToast('模板已载入')
 }
 
 const onDeleteTemplate = (tpl: TemplateItem) => {
-  showConfirmDialog({
-    title: '确认删除',
-    message: `确认删除模板 ${tpl.name} 吗？`,
-  }).then(() => {
-    templateStore.deleteTemplate(tpl.id)
-  }).catch(() => {})
+  showConfirmDialog({ title: '确认删除', message: `确认删除模板 ${tpl.name} 吗？` })
+    .then(() => templateStore.deleteTemplate(tpl.id)).catch(() => {})
 }
 
-// 获取当前类型下的分类列表
-const currentCategories = computed(() => {
-  return recordType.value === 1 ? store.expenseCategories : store.incomeCategories
-})
+// 分类
+const currentCategories = computed(() => recordType.value === 1 ? store.expenseCategories : store.incomeCategories)
 
-// 监听类型变化，重置选中分类
+// 根据选择的类目ID获取类目详情，主要用于展示在 Input Bar 左侧
+const selectedCategoryData = computed(() => currentCategories.value.find(c => c.id === selectedCategoryId.value))
+
 watch(recordType, () => {
   if (currentCategories.value.length > 0) {
     selectedCategoryId.value = currentCategories.value[0].id
@@ -431,447 +326,344 @@ const selectCategory = (id: string) => {
   selectedCategoryId.value = id
 }
 
-// 标签操作
-const addTag = () => {
-  const val = newTagInput.value.trim().replace(/^#/, '')
-  if (val && !selectedTags.value.includes(val)) {
-    selectedTags.value.push(val)
-  }
-  newTagInput.value = ''
-}
-
-const removeTag = (tag: string) => {
-  selectedTags.value = selectedTags.value.filter(t => t !== tag)
-}
-
-// 智能小票识别 (Mock)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const onAfterRead = (_file: any | any[]) => {
-  // 模拟 OCR 扫描延迟
-  showLoadingToast({
-    message: '正在 AI 识别小票...',
-    forbidClick: true,
-    duration: 0,
-  })
-
+// 小票识别 Mock
+const onAfterRead = (_file: any) => {
+  showLoadingToast({ message: '正在 AI 识别小票...', forbidClick: true, duration: 0 })
   setTimeout(() => {
     closeToast()
-    // Mock 识别结果
     const mockAmounts = ['128.50', '39.90', '458.00', '12.00']
-    const mockRemarks = ['星巴克咖啡厅', '世纪联华超市购物', '滴滴出行', '美团外卖']
-    
+    const mockRemarks = ['星巴克咖啡厅', '世纪联华', '滴滴出行', '外卖']
     amountVal.value = mockAmounts[Math.floor(Math.random() * mockAmounts.length)]
     remark.value = mockRemarks[Math.floor(Math.random() * mockRemarks.length)]
-    
-    // 如果还没选分类，尝试猜一个餐饮分类
-    if (!selectedCategoryId.value || selectedCategoryId.value === currentCategories.value[0]?.id) {
-      const foodCat = currentCategories.value.find(c => c.name.includes('餐饮') || c.name.includes('饮食'))
-      if (foodCat) {
-        selectedCategoryId.value = foodCat.id
-      }
-    }
-
-    showToast({
-      message: '识别成功，已自动填入',
-      icon: 'passed'
-    })
-  }, 1500)
+    showToast({ message: '识别成功', icon: 'passed' })
+  }, 1000)
 }
 
-// 预算计算
-const currentMonthExpense = computed(() => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  return store.currentLedgerRecords
-    .filter(r => r.type === 1)
-    .filter(r => {
-      if (r.accountId) {
-        const acc = accountStore.accounts.find(a => a.id === r.accountId)
-        if (acc && acc.type === 4) return false
-      }
-      const d = new Date(r.recordTime)
-      return d.getFullYear() === year && d.getMonth() === month
-    })
-    .reduce((sum, r) => sum + (r.amount * (r.exchangeRate || 1)), 0)
-})
-
-const budgetProgress = computed(() => {
-  if (store.budget <= 0) return 0
-  const pct = (currentMonthExpense.value / store.budget) * 100
-  return Math.min(pct, 100)
-})
-
-const remainingBudget = computed(() => {
-  return (store.budget - currentMonthExpense.value).toFixed(2)
-})
-
-// 提交保存
 const submitRecord = () => {
   const amount = parseFloat(amountVal.value)
   if (amount <= 0 && amountVal.value !== '0') {
     showToast('请输入有效金额')
     return
   }
-  
   if (!selectedCategoryId.value) {
     showToast('请选择分类')
     return
   }
-  
-  // 保存全局标签记录
-  selectedTags.value.forEach(t => {
-    store.addTag(t)
-  })
+  selectedTags.value.forEach(t => store.addTag(t))
 
   store.addRecord({
     type: recordType.value,
     amount: amount,
     categoryId: selectedCategoryId.value,
     accountId: selectedAccountId.value, 
-    recordTime: selectedDate.value.getTime(), // 使用用户选择的历史时间
+    recordTime: selectedDate.value.getTime(),
     remark: remark.value,
     tags: [...selectedTags.value],
-    goalId: recordType.value === 1 && selectedGoalId.value ? selectedGoalId.value : undefined, // 如果选了心愿单且是支出，绑定
-    reimbursable: recordType.value === 1 ? isReimbursable.value : undefined, // 仅支出支持标记为待报销
+    goalId: recordType.value === 1 && selectedGoalId.value ? selectedGoalId.value : undefined,
+    reimbursable: recordType.value === 1 ? isReimbursable.value : undefined,
     attachments: fileList.value.map(f => f.content).filter(Boolean),
     currency: selectedCurrency.value,
     exchangeRate: Number(exchangeRate.value) || 1
   })
   
-  showToast({
-    message: '记账成功',
-    icon: 'success'
-  })
+  showToast({ message: '记账成功', icon: 'success' })
   
-  // 重置状态
   amountVal.value = '0'
   remark.value = ''
   selectedTags.value = []
-  newTagInput.value = ''
-  selectedDate.value = new Date() // 记完归位到今天
+  selectedDate.value = new Date()
   selectedGoalId.value = ''
-  isReimbursable.value = false // 重置待报销状态
-  fileList.value = [] // 清空附件
-  selectedCurrency.value = ledgerStore.currentLedger.baseCurrency || 'CNY'
-  exchangeRate.value = 1
+  isReimbursable.value = false
+  fileList.value = []
 }
 </script>
 
 <style lang="scss" scoped>
-.home-container {
+.icost-home-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  
-  .top-section {
-    padding: 16px 16px 0;
-    background-color: var(--van-primary-color);
-    color: #fff;
+  height: 100vh; // 满屏不原生滚动
+  overflow: hidden;
+  background-color: var(--bg-color-primary); // 纯粹干净底色
+
+  /* === Top Header === */
+  .header-section {
+    padding: 16px 20px;
+    background-color: var(--bg-color-primary);
     
     .header-tools {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
       
-      .ledger-switch {
+      .ledger-switch, .right-placeholder {
+        width: 60px; // 保持居中平衡
         display: flex;
         align-items: center;
+      }
+      
+      .ledger-switch {
         font-size: 14px;
-        background-color: rgba(255,255,255,0.15);
-        padding: 4px 10px;
-        border-radius: 12px;
+        color: var(--text-color-primary);
+        font-weight: 500;
         
-        .van-icon {
-          margin-right: 4px;
-        }
-        .arrow {
-          margin-left: 2px;
-          margin-right: 0;
-          font-size: 12px;
-          opacity: 0.8;
-        }
+        .van-icon { margin-right: 4px; }
+        .arrow { font-size: 12px; margin-left: 2px; color: var(--text-color-secondary); }
       }
 
       .type-switch-pill {
         display: flex;
-        background-color: rgba(0, 0, 0, 0.15);
-        border-radius: 16px;
-        padding: 2px;
+        background-color: var(--bg-color-secondary);
+        border-radius: 8px;
+        padding: 4px;
+        width: 140px;
         
         .pill-item {
-          padding: 4px 16px;
-          border-radius: 14px;
-          font-size: 14px;
-          font-weight: 500;
-          transition: all 0.25s ease;
-          color: rgba(255, 255, 255, 0.7);
+          flex: 1;
+          text-align: center;
+          padding: 6px 0;
+          font-size: 15px;
+          border-radius: 6px;
+          color: var(--text-color-secondary);
+          transition: all 0.2s ease;
           
           &.active {
-            background-color: #fff;
-            color: var(--van-primary-color);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-          }
-        }
-      }
-    }
-    
-    .amount-display {
-      font-size: 44px;
-      font-weight: 600;
-      display: flex;
-      align-items: baseline;
-      margin-bottom: 24px;
-      position: relative;
-      
-      .currency {
-        font-size: 24px;
-        margin-right: 8px;
-        font-weight: 500;
-      }
-      
-      .value {
-        line-height: 1.1;
-        &.is-placeholder {
-          opacity: 0.8;
-        }
-      }
-
-      .save-tpl-btn {
-        font-size: 20px;
-        margin-left: 12px;
-        color: rgba(255, 255, 255, 0.8);
-        cursor: pointer;
-        &:active { opacity: 0.6; }
-      }
-    }
-
-    .template-bar {
-      margin-bottom: 12px;
-      width: 100%;
-      overflow-x: auto;
-      
-      // hide scrollbar
-      scrollbar-width: none;
-      &::-webkit-scrollbar { display: none; }
-      
-      .template-scroll {
-        display: flex;
-        gap: 10px;
-        padding: 2px 0;
-        
-        .tpl-tag {
-          font-size: 12px;
-          padding: 4px 10px;
-          background-color: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.4);
-          color: #fff;
-          white-space: nowrap;
-          
-          :deep(.van-tag__close) {
-            margin-left: 6px;
-            opacity: 0.7;
-          }
-        }
-      }
-    }
-    
-      .info-bar {
-        display: flex;
-        align-items: center;
-        padding-bottom: 12px;
-        font-size: 14px;
-        border-bottom: 1px solid rgba(255,255,255,0.2);
-        
-        .info-item {
-          display: flex;
-          align-items: center;
-          margin-right: 16px;
-          
-          .van-icon {
-            margin-right: 4px;
-          }
-        }
-        
-        .reimbursable-switch {
-          margin-right: 12px;
-          opacity: 0.9;
-          :deep(.van-checkbox__label) {
-            margin-left: 4px;
-          }
-        }
-        
-        .remark-input {
-          flex: 1;
-          input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: #fff;
-            outline: none;
-            &::placeholder {
-              color: rgba(255,255,255,0.6);
-            }
-          }
-        }
-      }
-
-      .tags-bar {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        padding: 8px 0;
-        gap: 8px;
-        border-bottom: 1px solid rgba(255,255,255,0.2);
-
-        .tags-list {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-        }
-
-        .tag-input-wrap {
-          display: flex;
-          align-items: center;
-          flex: 1;
-          min-width: 120px;
-          font-size: 13px;
-          
-          .van-icon {
-            margin-right: 4px;
-            opacity: 0.8;
-          }
-
-          input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: #fff;
-            outline: none;
-            &::placeholder {
-              color: rgba(255,255,255,0.6);
-            }
-          }
-        }
-      }
-      
-      .attachments-bar {
-        padding: 12px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.2);
-        
-        .attach-title {
-          font-size: 13px;
-          display: flex;
-          align-items: center;
-          margin-bottom: 8px;
-          opacity: 0.9;
-          
-          .van-icon {
-            margin-right: 4px;
-          }
-        }
-
-        :deep(.van-uploader__preview-image) {
-          border-radius: 8px;
-        }
-        
-        .ocr-upload-btn {
-          width: 80px;
-          height: 80px;
-          background-color: rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          color: #fff;
-          gap: 6px;
-          border: 1px dashed rgba(255,255,255,0.3);
-          
-          span {
-            font-size: 11px;
-            opacity: 0.9;
-          }
-        }
-      }
-      
-      .budget-bar {
-        padding: 12px 0 16px;
-        
-        .budget-texts {
-          display: flex;
-          justify-content: space-between;
-          font-size: 12px;
-          margin-bottom: 6px;
-          opacity: 0.9;
-          
-          .pct {
-            font-size: 11px;
-            opacity: 0.8;
-          }
-        }
-      }
-    }
-  
-  .category-section {
-    flex: 1;
-    overflow-y: auto;
-    background-color: var(--bg-color-primary);
-    
-    .category-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 16px 0;
-      padding: 16px 0;
-      
-      .category-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-color-primary);
-        
-        .icon-wrap {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          background-color: var(--bg-color-secondary);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 6px;
-          transition: all 0.2s;
-        }
-        
-        .name {
-          font-size: 12px;
-        }
-        
-        &:active {
-          transform: scale(0.92);
-          opacity: 0.8;
-        }
-        
-        &.active {
-          .icon-wrap {
             background-color: var(--van-primary-color);
             color: #fff;
-            transform: scale(1.1);
-          }
-          .name {
-            color: var(--van-primary-color);
-            font-weight: 500;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
         }
       }
     }
   }
-  
-  .keyboard-popup {
-    background: transparent;
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
-    // 隐藏 popup 自带的背景色以贴合自定义键盘的透明边缘
+
+  /* === Middle Category Grid === */
+  .category-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 16px; // 留出一点内边距
+    background-color: var(--bg-color-primary);
+    
+    // 隐藏滚动条
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .template-bar {
+      margin-top: 8px;
+      margin-bottom: 16px;
+      .template-scroll {
+        display: flex;
+        overflow-x: auto;
+        gap: 8px;
+        &::-webkit-scrollbar { display: none; }
+        .tpl-tag { flex-shrink: 0; }
+      }
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px 10px;
+      padding-top: 10px;
+      
+      .category-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        cursor: pointer;
+        
+        .icon-wrap {
+          width: 48px;
+          height: 48px;
+          border-radius: 24px; // 大圆角或纯圆
+          background-color: var(--bg-color-secondary);
+          color: var(--text-color-primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          
+          &.dashed-wrap {
+            background-color: transparent;
+            border: 1px dashed var(--border-color);
+          }
+        }
+        
+        .name {
+          margin-top: 8px;
+          font-size: 13px;
+          color: var(--text-color-regular);
+          transition: color 0.2s;
+        }
+
+        &.active {
+          .icon-wrap {
+            background-color: var(--van-primary-color);
+            color: #fff;
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(var(--van-primary-color-rgb, 100, 100, 100), 0.3);
+          }
+          .name {
+            color: var(--text-color-primary);
+            font-weight: 600;
+          }
+        }
+        
+        .text-secondary {
+          color: var(--text-color-secondary);
+        }
+      }
+    }
+  }
+
+  /* === Bottom Fixed Area === */
+  .bottom-action-area {
+    background-color: var(--bg-color-primary);
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.03);
+    padding-bottom: constant(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom);
+
+    .tools-row {
+      display: flex;
+      overflow-x: auto;
+      padding: 10px 16px;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-color-primary);
+      
+      &::-webkit-scrollbar { display: none; }
+      
+      .tool-pill {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        background-color: var(--bg-color-secondary);
+        color: var(--text-color-secondary);
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 13px;
+
+        &.no-bg {
+          background-color: transparent;
+          padding: 0;
+        }
+        
+        .van-icon {
+          margin-right: 4px;
+          font-size: 14px;
+        }
+
+        .inline-input {
+          width: 40px; 
+          background: transparent; 
+          border: none; 
+          border-bottom: 1px dashed var(--text-color-secondary); 
+          color: var(--text-color-primary); 
+          outline: none; 
+          margin-left: 4px;
+          font-size: 13px;
+        }
+
+        .flex-center {
+          display: flex;
+          align-items: center;
+        }
+
+        .checkbox-label {
+          color: var(--text-color-secondary);
+          font-size: 13px;
+        }
+      }
+    }
+
+    .input-bar {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background-color: var(--bg-color-primary);
+      
+      .selected-cat {
+        display: flex;
+        align-items: center;
+        margin-right: 12px;
+        flex-shrink: 0;
+        
+        .icon-indicator {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background-color: var(--van-primary-color);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .name {
+          margin-left: 8px;
+          font-size: 15px;
+          font-weight: 500;
+          color: var(--text-color-primary);
+        }
+      }
+
+      .remark-wrapper {
+        flex: 1;
+        
+        .remark-input {
+          width: 100%;
+          border: none;
+          background: transparent;
+          font-size: 15px;
+          color: var(--text-color-primary);
+          outline: none;
+          
+          &::placeholder {
+            color: var(--text-color-secondary);
+          }
+        }
+      }
+
+      .amount-display-wrapper {
+        flex-shrink: 0;
+        display: flex;
+        align-items: base-line;
+        justify-content: flex-end;
+        color: var(--text-color-primary);
+        
+        .currency-symbol {
+          font-size: 20px;
+          font-weight: bold;
+          margin-right: 4px;
+          margin-bottom: 2px;
+          align-self: flex-end;
+        }
+        
+        .amount-value {
+          font-size: 36px;
+          font-weight: bold;
+          font-family: 'Din', 'Arial', sans-serif;
+          // Tabular nums 避免变动时宽度跳动
+          font-variant-numeric: tabular-nums; 
+          line-height: 1;
+          
+          &.is-zero {
+            color: var(--text-color-secondary);
+            opacity: 0.5;
+          }
+        }
+      }
+    }
+
+    .keyboard-wrapper {
+      // 在 iPhone 底部小黑条之上的安全距离
+      background-color: var(--bg-color-primary);
+    }
   }
 }
 </style>

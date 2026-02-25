@@ -119,30 +119,30 @@ const onConfirm = () => {
 <style lang="scss" scoped>
 .custom-keyboard {
   background-color: var(--bg-color-secondary);
-  padding: 8px;
+  padding: 8px 6px 34px; // 底部预留安全区
   
   .keyboard-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(4, 54px);
-    gap: 8px;
+    grid-template-rows: repeat(4, 48px);
+    gap: 6px;
     
     .key {
       background-color: var(--bg-color-primary);
-      border-radius: 8px;
+      border-radius: 6px;
       display: flex;
       justify-content: center;
       align-items: center;
       font-size: 24px;
       font-weight: 500;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      color: var(--text-color-primary);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.05); // iOS拟物轻投影
       cursor: pointer;
       user-select: none;
-      transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.1s;
+      transition: background-color 0.1s;
       
       &:active {
-        background-color: #ebedf0;
-        transform: scale(0.92);
+        background-color: var(--border-color);
       }
     }
     
@@ -150,23 +150,26 @@ const onConfirm = () => {
       grid-column: 3 / span 2; // 占据两列
       background-color: var(--van-primary-color);
       color: #fff;
-      font-size: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      box-shadow: none;
       
       &:active {
-        background-color: #06ad56;
+        opacity: 0.8;
       }
       
       &.is-calc {
-        background-color: #ff976a;
-        &:active {
-           background-color: #e6885f;
-        }
+        background-color: var(--van-warning-color, #ff976a);
       }
     }
     
     .action-key, .operator-key {
       font-size: 20px;
-      color: var(--text-color-primary);
+      background-color: var(--bg-color-secondary); // 略深的颜色区分功能键
+      
+      &:active {
+        background-color: rgba(0,0,0,0.1);
+      }
     }
   }
 }
