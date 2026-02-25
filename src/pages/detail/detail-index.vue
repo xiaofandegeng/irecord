@@ -1,22 +1,23 @@
 <template>
   <div class="detail-container">
-    <div class="header">
+    <div class="header glassmorphic">
       <div class="title-bar">
-        <div class="title">账单明细</div>
+        <div class="title">账务明细</div>
         <div class="actions">
-          <span class="batch-btn" @click="toggleBatchMode" v-if="viewMode === 'list'">{{ isBatchMode ? '完成' : '批量管理' }}</span>
-          <van-icon :name="viewMode === 'list' ? 'calendar-o' : 'orders-o'" size="22" class="action-icon" @click="toggleViewMode" />
-          <van-icon name="search" size="22" class="action-icon" @click="goSearch" />
+          <span class="batch-btn" @click="toggleBatchMode" v-if="viewMode === 'list'">{{ isBatchMode ? '完成' : '管理' }}</span>
+          <van-icon :name="viewMode === 'list' ? 'calendar-o' : 'orders-o'" size="20" class="action-icon" @click="toggleViewMode" />
+          <van-icon name="search" size="20" class="action-icon" @click="goSearch" />
         </div>
       </div>
-      <div class="summary">
+      <div class="hero-summary">
         <div class="item">
-          <span class="label">总支出</span>
-          <span class="value">¥ {{ accountStore.privacyMode ? '****' : totalExpense.toFixed(2) }}</span>
+          <span class="label">本期支出</span>
+          <span class="value din-font bold">{{ accountStore.privacyMode ? '****' : totalExpense.toFixed(2) }}</span>
         </div>
+        <div class="divider"></div>
         <div class="item">
-          <span class="label">总收入</span>
-          <span class="value">¥ {{ accountStore.privacyMode ? '****' : totalIncome.toFixed(2) }}</span>
+          <span class="label">本期收入</span>
+          <span class="value din-font">{{ accountStore.privacyMode ? '****' : totalIncome.toFixed(2) }}</span>
         </div>
       </div>
     </div>
@@ -24,52 +25,54 @@
     <!-- 列表视图 -->
     <div class="list-area" v-if="viewMode === 'list'">
       <transition-group name="list" tag="div" class="list-wrapper" v-if="Object.keys(groupedRecords).length > 0">
-        <div v-for="(records, dateKey) in groupedRecords" :key="dateKey" class="date-group">
-          <div class="date-header">
+        <div v-for="(records, dateKey) in groupedRecords" :key="dateKey" class="date-card">
+          <div class="date-card-header">
             <span class="date">{{ formatHeaderDate(dateKey) }}</span>
             <span class="daily-sum" v-if="accountStore.privacyMode">****</span>
             <span class="daily-sum" v-else>{{ getDailySum(records) }}</span>
           </div>
           
           <transition-group name="list" tag="div" class="record-list">
-            <van-swipe-cell v-for="record in records" :key="record.id" :disabled="isBatchMode">
-              <div class="record-item" :class="{ 'is-batch': isBatchMode }" @click="toggleSelection(record.id)">
+            <van-swipe-cell v-for="(record, index) in records" :key="record.id" :disabled="isBatchMode">
+              <div 
+                class="record-item" 
+                :class="{ 
+                  'is-batch': isBatchMode, 
+                  'is-last': index === records.length - 1 
+                }" 
+                @click="toggleSelection(record.id)"
+              >
                 <div class="batch-checkbox" v-if="isBatchMode">
-                  <van-checkbox :name="record.id" :model-value="selectedRecordIds.includes(record.id)" @click.stop="toggleSelection(record.id)" shape="square" checked-color="var(--van-primary-color)" />
+                  <van-checkbox :name="record.id" :model-value="selectedRecordIds.includes(record.id)" @click.stop="toggleSelection(record.id)" shape="round" checked-color="var(--van-primary-color)" />
                 </div>
+                
                 <div class="icon-wrap" :class="{'is-income': record.type === 2}">
                   <van-icon :name="getCategoryIcon(record.categoryId)" size="20" />
                 </div>
+                
                 <div class="content">
                   <div class="top-line">
                     <span class="name">{{ getCategoryName(record.categoryId) }}</span>
-                    <span class="amount" :class="{'is-income': record.type === 2}">
+                    <span class="amount din-font" :class="{'is-income': record.type === 2}">
                       {{ record.type === 1 ? '-' : '+' }}{{ accountStore.privacyMode ? '****' : record.amount.toFixed(2) }}
                     </span>
                   </div>
                   <div class="bottom-line" v-if="record.remark || record.recordTime || (record.tags && record.tags.length > 0)">
                     <span class="time">{{ formatTime(record.recordTime) }}</span>
-                    <span class="remark" v-if="record.remark">{{ record.remark }}</span>
+                    <span class="remark text-ellipsis" v-if="record.remark">{{ record.remark }}</span>
                   </div>
                   <div class="tags-line" v-if="record.tags && record.tags.length > 0">
-                    <van-tag 
-                      v-for="tag in record.tags" 
-                      :key="tag" 
-                      plain 
-                      type="primary" 
-                      size="medium"
-                      class="mini-tag"
-                    >
+                    <span class="mini-tag" v-for="tag in record.tags" :key="tag">
                       #{{ tag }}
-                    </van-tag>
+                    </span>
                   </div>
                   <div class="attachments-line" v-if="record.attachments && record.attachments.length > 0">
                     <van-image
                       v-for="(img, idx) in record.attachments"
                       :key="idx"
                       :src="img"
-                      width="40px"
-                      height="40px"
+                      width="36px"
+                      height="36px"
                       fit="cover"
                       radius="4px"
                       class="attach-thumb"
@@ -80,8 +83,8 @@
               </div>
               
               <template #right>
-                <van-button v-if="record.type === 1 && !record.refundForId && record.amount > 0" square text="退款" type="warning" class="refund-button" @click="onRefund(record)" />
-                <van-button square text="删除" type="danger" class="delete-button" @click="onDelete(record.id)" />
+                <van-button v-if="record.type === 1 && !record.refundForId && record.amount > 0" square text="退款" type="warning" class="action-button refund-button" @click="onRefund(record)" />
+                <van-button square text="删除" type="danger" class="action-button delete-button" @click="onDelete(record.id)" />
               </template>
             </van-swipe-cell>
           </transition-group>
@@ -90,29 +93,33 @@
       <div v-else class="empty-state">
         <van-empty image="search" description="暂无账单数据" />
       </div>
+      
+      <!-- 底部防遮挡 -->
+      <div class="bottom-padding"></div>
     </div>
 
     <!-- 日历视图 / 活跃热力图 -->
     <div class="calendar-area" v-else>
       <ContributionHeatmap :grouped-records="groupedRecords" />
+      <div class="bottom-padding"></div>
     </div>
 
     <!-- 批量操作底栏 -->
-    <van-action-bar v-if="isBatchMode && viewMode === 'list'">
+    <van-action-bar v-if="isBatchMode && viewMode === 'list'" class="batch-action-bar">
       <van-action-bar-button type="default" :text="selectedRecordIds.length === allRecords.length ? '取消全选' : '全选'" @click="selectAll" />
       <van-action-bar-button type="warning" text="修改分类" @click="showBatchCategoryPicker = true" :disabled="selectedRecordIds.length === 0" />
       <van-action-bar-button type="danger" text="删除" @click="onBatchDelete" :disabled="selectedRecordIds.length === 0" />
     </van-action-bar>
 
-    <van-action-sheet v-model:show="showBatchCategoryPicker" :actions="batchCategoryActions" cancel-text="取消" @select="onSelectBatchCategory" />
+    <van-action-sheet v-model:show="showBatchCategoryPicker" :actions="batchCategoryActions" cancel-text="取消" @select="onSelectBatchCategory" round />
 
     <!-- 退款操作弹窗 -->
-    <van-dialog v-model:show="showRefund" title="记录退款" show-cancel-button @confirm="onConfirmRefund">
-      <div style="padding: 16px; font-size: 14px; color: #666; text-align: center;">
+    <van-dialog v-model:show="showRefund" title="记录退款" show-cancel-button @confirm="onConfirmRefund" class="custom-dialog">
+      <div class="dialog-tips">
         原支出：{{ currentRefundRecord?.amount.toFixed(2) }} 
         <span v-if="currentRefundRecord?.currency">{{ currentRefundRecord.currency }}</span>
       </div>
-      <van-field v-model="refundAmount" type="number" label="退款金额" placeholder="请输入退回的金额" />
+      <van-field v-model="refundAmount" type="number" label="退款金额" placeholder="请输入退回的金额" :border="false" />
     </van-dialog>
   </div>
 </template>
@@ -325,23 +332,38 @@ const previewImage = (images: string[], startPosition: number) => {
 .detail-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
+  background-color: var(--bg-color-secondary);
   
   .header {
-    padding: 20px 16px;
-    background-color: var(--van-primary-color);
-    color: #fff;
+    padding: 16px 16px 24px;
+    color: var(--text-color-primary);
+    position: relative;
+    z-index: 10;
+    
+    &.glassmorphic {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      
+      [data-theme='dark'] & {
+        background: rgba(30, 30, 30, 0.75);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+    }
     
     .title-bar {
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
-      margin-bottom: 16px;
+      margin-bottom: 24px;
       
       .title {
-        font-size: 18px;
-        font-weight: 500;
+        font-size: 17px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
       }
       
       .actions {
@@ -349,26 +371,45 @@ const previewImage = (images: string[], startPosition: number) => {
         right: 0;
         display: flex;
         gap: 16px;
+        align-items: center;
         
         .action-icon {
-          // padding to make it easier to click
           padding: 4px;
+          cursor: pointer;
+          color: var(--text-color-primary);
+          transition: opacity 0.2s;
+          
+          &:active {
+            opacity: 0.6;
+          }
         }
 
         .batch-btn {
           font-size: 14px;
-          display: flex;
-          align-items: center;
+          color: var(--van-primary-color);
+          font-weight: 500;
           padding: 4px;
           cursor: pointer;
-          opacity: 0.9;
+          transition: opacity 0.2s;
+          
+          &:active {
+            opacity: 0.6;
+          }
         }
       }
     }
     
-    .summary {
+    .hero-summary {
       display: flex;
-      justify-content: space-around;
+      align-items: center;
+      justify-content: space-evenly;
+      
+      .divider {
+        width: 1px;
+        height: 30px;
+        background-color: var(--van-gray-3);
+        opacity: 0.5;
+      }
       
       .item {
         display: flex;
@@ -377,144 +418,244 @@ const previewImage = (images: string[], startPosition: number) => {
         
         .label {
           font-size: 12px;
-          opacity: 0.8;
-          margin-bottom: 4px;
+          color: var(--text-color-secondary);
+          margin-bottom: 6px;
+          font-weight: 500;
         }
         
         .value {
-          font-size: 20px;
-          font-weight: 500;
+          font-size: 24px;
+          color: var(--text-color-primary);
+          
+          &.bold {
+            font-weight: bold;
+          }
         }
       }
     }
   }
   
-  .list-area {
+  .list-area, .calendar-area {
     flex: 1;
     overflow-y: auto;
-    background-color: var(--bg-color-secondary);
+    padding: 12px 16px;
     
-    .date-group {
-      margin-bottom: 12px;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .bottom-padding {
+      height: 80px; /* Account for bottom tab bar */
+    }
+  }
+  
+  .list-area {
+    .date-card {
       background-color: var(--bg-color-primary);
+      border-radius: 16px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
       
-      .date-header {
+      [data-theme='dark'] & {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      
+      .date-card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 16px;
+        padding: 14px 16px 8px;
         font-size: 12px;
         color: var(--text-color-secondary);
-        border-bottom: 1px solid #f0f0f0;
+        font-weight: 500;
+        
+        .date {
+          color: var(--text-color-primary);
+          font-weight: 600;
+          font-size: 13px;
+        }
+        
+        .daily-sum {
+          background: var(--bg-color-secondary);
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-size: 11px;
+        }
       }
       
-      .record-item {
+      .record-list {
+        .record-item {
           display: flex;
-          align-items: center;
-          padding: 12px 16px;
+          align-items: flex-start;
+          padding: 14px 16px;
           background-color: var(--bg-color-primary);
-          transition: background-color 0.2s;
+          position: relative;
+          
+          @media (hover: hover) {
+            &:hover {
+              background-color: var(--van-active-color);
+            }
+          }
+          &:active {
+            background-color: var(--van-active-color);
+          }
+          
+          &:not(.is-last)::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 64px; /* Align with text content */
+            right: 16px;
+            height: 1px;
+            background-color: var(--van-gray-2);
+            transform: scaleY(0.5);
+            
+            [data-theme='dark'] & {
+              background-color: rgba(255, 255, 255, 0.08);
+            }
+          }
           
           &.is-batch {
             cursor: pointer;
-            &:active {
-              background-color: #f5f5f5;
-            }
+            align-items: center;
           }
 
           .batch-checkbox {
-            margin-right: 12px;
+            margin-right: 14px;
             display: flex;
             align-items: center;
           }
           
           .icon-wrap {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          background-color: var(--bg-color-secondary);
-          color: var(--van-primary-color);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-right: 12px;
-          
-          &.is-income {
-            color: #ff976a; 
-          }
-        }
-        
-        .content {
-          flex: 1;
-          
-          .top-line {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-            
-            .name {
-              font-size: 15px;
-              color: var(--text-color-primary);
-            }
-            .amount {
-              font-size: 16px;
-              font-weight: 500;
-              color: var(--text-color-primary);
-              &.is-income {
-                color: var(--brand-income); // 其实设计上可以定义收入为绿色，支流为黑色
-              }
-            }
-          }
-          
-          .bottom-line {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--bg-color-secondary);
+            color: var(--van-primary-color);
             display: flex;
             align-items: center;
-            font-size: 12px;
-            color: var(--text-color-secondary);
-            margin-bottom: 4px;
+            justify-content: center;
+            margin-right: 12px;
+            flex-shrink: 0;
             
-            .time {
-              margin-right: 8px;
-            }
-          }
-          .tags-line {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-top: 4px;
-            
-            .mini-tag {
-              font-size: 10px;
-              padding: 0 4px;
-              border-radius: 4px;
+            &.is-income {
+              color: var(--brand-income, #ff976a); 
+              background-color: rgba(255, 151, 106, 0.1);
             }
           }
           
-          .attachments-line {
-            margin-top: 8px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+          .content {
+            flex: 1;
+            min-width: 0;
             
-            .attach-thumb {
-              border: 1px solid var(--van-gray-2);
-              background: var(--bg-color-secondary);
+            .top-line {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 4px;
+              
+              .name {
+                font-size: 15px;
+                font-weight: 500;
+                color: var(--text-color-primary);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                padding-right: 8px;
+              }
+              
+              .amount {
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--text-color-primary);
+                flex-shrink: 0;
+                
+                &.is-income {
+                  color: var(--brand-income, #ff976a);
+                }
+              }
+            }
+            
+            .bottom-line {
+              display: flex;
+              align-items: center;
+              font-size: 12px;
+              color: var(--text-color-secondary);
+              margin-bottom: 2px;
+              
+              .time {
+                margin-right: 8px;
+                flex-shrink: 0;
+              }
+              
+              .remark {
+                flex: 1;
+              }
+            }
+            
+            .tags-line {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 6px;
+              margin-top: 6px;
+              
+              .mini-tag {
+                font-size: 10px;
+                padding: 2px 6px;
+                border-radius: 4px;
+                color: var(--van-primary-color);
+                background-color: var(--bg-color-secondary);
+                font-weight: 500;
+              }
+            }
+            
+            .attachments-line {
+              margin-top: 8px;
+              display: flex;
+              flex-wrap: wrap;
+              gap: 8px;
+              
+              .attach-thumb {
+                border: 1px solid var(--van-gray-2);
+                border-radius: 4px;
+                overflow: hidden;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                
+                [data-theme='dark'] & {
+                  border-color: rgba(255, 255, 255, 0.1);
+                }
+              }
             }
           }
         }
       }
     }
-    
-    .delete-button {
-      height: 100%;
-    }
   }
 
-  .calendar-area {
-    flex: 1;
-    overflow-y: auto;
-    background-color: var(--bg-color-secondary);
-    padding-top: 12px;
+  .action-button {
+    height: 100%;
+    
+    &.refund-button {
+      background-color: #ff976a;
+      border-color: #ff976a;
+    }
+  }
+}
+
+.text-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-dialog {
+  .dialog-tips {
+    padding: 16px 16px 0;
+    font-size: 14px;
+    color: var(--text-color-secondary);
+    text-align: center;
   }
 }
 
@@ -525,7 +666,7 @@ const previewImage = (images: string[], startPosition: number) => {
 }
 .list-enter-from {
   opacity: 0;
-  transform: translateY(-20px);
+  transform: translateY(-10px);
 }
 .list-leave-to {
   opacity: 0;

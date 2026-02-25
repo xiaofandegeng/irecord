@@ -1,134 +1,148 @@
 <template>
   <div class="mine-container">
-    <div class="user-card">
-      <div class="avatar">
-        <van-image v-if="userStore.userInfo?.avatar" round width="60" height="60" :src="userStore.userInfo.avatar" />
-        <van-icon v-else name="smile" size="40" color="#fff" />
-      </div>
-      <div class="info">
-        <div class="name">{{ userStore.userInfo?.username || '记账达人' }}</div>
-        <div class="desc">已经坚持记账 {{ totalDays }} 天</div>
-      </div>
-    </div>
-    
-    <div class="asset-card">
-      <div class="asset-row">
-        <div class="asset-item">
-          <span class="label">流动净资产</span>
-          <span class="value">{{ accountStore.privacyMode ? '****' : (accountStore.totalNetAsset - investmentAsset).toFixed(2) }}</span>
+    <!-- 顶部超级资产大盘卡 -->
+    <div class="hero-asset-card">
+      <div class="user-info">
+        <div class="avatar-wrap">
+          <van-image v-if="userStore.userInfo?.avatar" round width="56" height="56" :src="userStore.userInfo.avatar" />
+          <div v-else class="default-avatar"><van-icon name="smile" size="32" color="#fff" /></div>
         </div>
-        <div class="asset-item" @click="router.push('/account-manage')">
-          <span class="label">投资理财 <van-icon name="arrow" style="font-size: 10px;" /></span>
-          <span class="value" style="color: #8a2be2;">{{ accountStore.privacyMode ? '****' : investmentAsset.toFixed(2) }}</span>
+        <div class="text-info">
+          <div class="main-title">
+            <span class="name">{{ userStore.userInfo?.username || '记账达人' }}</span>
+            <div class="badge">已记账 {{ totalDays }} 天</div>
+          </div>
+          <div class="sub-title">让每一笔财富都有迹可循</div>
         </div>
       </div>
-      <div class="asset-row" style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.2);">
-        <div class="asset-item" @click="router.push('/debt-manage?type=1')">
-          <span class="label">待收 (借出)</span>
-          <span class="value" style="color: #07c160;">{{ accountStore.privacyMode ? '****' : debtStore.getLedgerTotals().lent.toFixed(2) }}</span>
+      
+      <div class="net-asset-section">
+        <div class="label">流动净资产</div>
+        <div class="value din-font">{{ accountStore.privacyMode ? '****' : (accountStore.totalNetAsset - investmentAsset).toFixed(2) }}</div>
+      </div>
+      
+      <div class="sub-assets-row">
+        <div class="asset-col" @click="router.push('/account-manage')">
+          <span class="col-label">投资理财 <van-icon name="arrow" /></span>
+          <span class="col-val din-font">{{ accountStore.privacyMode ? '****' : investmentAsset.toFixed(2) }}</span>
         </div>
         <div class="divider"></div>
-        <div class="asset-item" @click="router.push('/debt-manage?type=2')">
-          <span class="label">待还 (借入)</span>
-          <span class="value text-danger">{{ accountStore.privacyMode ? '****' : debtStore.getLedgerTotals().borrowed.toFixed(2) }}</span>
+        <div class="asset-col" @click="router.push('/debt-manage?type=1')">
+          <span class="col-label">待收(借出) <van-icon name="arrow" /></span>
+          <span class="col-val din-font green">{{ accountStore.privacyMode ? '****' : debtStore.getLedgerTotals().lent.toFixed(2) }}</span>
+        </div>
+        <div class="divider"></div>
+        <div class="asset-col" @click="router.push('/debt-manage?type=2')">
+          <span class="col-label">待还(借入) <van-icon name="arrow" /></span>
+          <span class="col-val din-font red">{{ accountStore.privacyMode ? '****' : debtStore.getLedgerTotals().borrowed.toFixed(2) }}</span>
         </div>
       </div>
     </div>
     
     <!-- 存钱目标横向滑动区 -->
-    <div class="goals-section" v-if="goalStore.goals.length > 0">
+    <div class="widget-section" v-if="goalStore.goals.length > 0">
       <div class="section-header">
-        <span class="title">存钱计划</span>
-        <span class="action" @click="router.push('/goal-manage')">管理 <van-icon name="arrow" /></span>
+        <span class="title">存钱计划 <span class="count">({{ goalStore.goals.length }})</span></span>
+        <span class="action" @click="router.push('/goal-manage')">查看全部 <van-icon name="arrow" /></span>
       </div>
-      <div class="goals-scroll">
-        <div class="goal-item" v-for="goal in goalStore.goals" :key="goal.id" @click="router.push('/goal-manage')">
-          <div class="g-icon"><van-icon :name="goal.icon" /></div>
-          <div class="g-info">
-            <div class="g-name">{{ goal.name }}</div>
-            <div class="g-progress">
-              <span class="g-current">{{ accountStore.privacyMode ? '****' : goal.currentAmount.toFixed(0) }}</span> 
-              / {{ accountStore.privacyMode ? '****' : goal.targetAmount.toFixed(0) }}
+      <div class="snap-scroll-row">
+        <div class="snap-card" v-for="goal in goalStore.goals" :key="goal.id" @click="router.push('/goal-manage')">
+          <div class="card-top">
+            <div class="icon-box"><van-icon :name="goal.icon" /></div>
+            <div class="name">{{ goal.name }}</div>
+          </div>
+          <div class="card-mid din-font">
+            <span class="current">{{ accountStore.privacyMode ? '****' : goal.currentAmount.toFixed(0) }}</span>
+            <span class="slash">/</span>
+            <span class="target">{{ accountStore.privacyMode ? '****' : goal.targetAmount.toFixed(0) }}</span>
+          </div>
+          <div class="card-bot">
+            <div class="progress-bar">
+              <div class="fill pattern-bg" :style="{ width: `${Math.min(100, (goal.currentAmount / goal.targetAmount) * 100)}%` }"></div>
             </div>
-            <van-progress 
-              :percentage="Math.min(100, (goal.currentAmount / goal.targetAmount) * 100)" 
-              stroke-width="4" 
-              color="var(--van-primary-color)" 
-              :show-pivot="false"
-            />
           </div>
         </div>
       </div>
     </div>
     
-    <!-- 分类预算超支预警 -->
-    <div class="budget-alert-card" v-if="overBudgetCategories.length > 0">
-      <div class="alert-title"><van-icon name="warning-o" /> 子预算预警</div>
-      <div class="alert-item" v-for="cat in overBudgetCategories" :key="cat.id">
-        <div class="cat-info">
-          <van-icon :name="cat.icon" class="cat-icon" /> 
-          <span class="cat-name">{{ cat.name }}</span>
-        </div>
-        <div class="budget-info">
-          已用: <span class="danger">{{ cat.spent.toFixed(2) }}</span> / {{ cat.budgetLimit }}
-        </div>
-        <!-- 进度条 -->
-        <div class="progress">
-          <div class="fill danger-bg" :style="{ width: `${Math.min(100, (cat.spent / cat.budgetLimit) * 100)}%` }"></div>
+    <!-- 分类预算超支预警横向滑动区 -->
+    <div class="widget-section" v-if="overBudgetCategories.length > 0">
+      <div class="section-header">
+        <span class="title" style="color: var(--van-danger-color);">超支预警 <span class="count">({{ overBudgetCategories.length }})</span></span>
+      </div>
+      <div class="snap-scroll-row">
+        <div class="snap-card alert-card" v-for="cat in overBudgetCategories" :key="cat.id">
+          <div class="card-top">
+            <div class="icon-box danger-box"><van-icon :name="cat.icon" /></div>
+            <div class="name">{{ cat.name }}</div>
+          </div>
+          <div class="card-mid din-font">
+            <span class="current danger-text">{{ cat.spent.toFixed(0) }}</span>
+            <span class="slash">/</span>
+            <span class="target">{{ cat.budgetLimit }}</span>
+          </div>
+          <div class="card-bot">
+            <div class="progress-bar">
+              <div class="fill danger-bg" :style="{ width: `${Math.min(100, (cat.spent / cat.budgetLimit) * 100)}%` }"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     
     <div class="settings-list">
-      <van-cell-group inset>
-        <van-cell title="多账本管理 (隔离独立数据)" is-link to="/ledger-manage" />
-        <van-cell title="心愿单与存钱计划" is-link to="/goal-manage" />
-        <van-cell title="报销与垫付单管理" is-link to="/reimburse-manage" />
-        <van-cell title="月度总预算" is-link :value="store.budget > 0 ? `¥ ${store.budget}` : '去设置'" @click="showBudget = true" />
-        <van-cell title="周期自动记账 (定投/房租)" is-link to="/recurring-manage" />
-        <van-cell title="资产账户管理" is-link to="/account-manage" />
-        <van-cell title="数据总计" :value="`${store.currentLedgerRecords.length} 笔`" />
-        <van-cell title="自定义分类配置" is-link to="/category-manage" />
+      <van-cell-group inset class="custom-inset-group">
+        <van-cell title="多账本管理 (隔离独立数据)" is-link to="/ledger-manage" icon="apps-o" />
+        <van-cell title="心愿单与存钱计划" is-link to="/goal-manage" icon="flag-o" />
+        <van-cell title="报销与垫付单管理" is-link to="/reimburse-manage" icon="cash-back-record" />
+        <van-cell title="周期自动记账 (定投/房租)" is-link to="/recurring-manage" icon="clock-o" />
+        <van-cell title="自定义分类配置" is-link to="/category-manage" icon="setting-o" />
       </van-cell-group>
       
-      <div class="space"></div>
+      <van-cell-group inset class="custom-inset-group">
+        <van-cell title="数据总计" :value="`${store.currentLedgerRecords.length} 笔`" icon="chart-trending-o" />
+        <van-cell title="月度总预算" is-link :value="store.budget > 0 ? `¥ ${store.budget}` : '去设置'" @click="showBudget = true" icon="balance-list-o" />
+      </van-cell-group>
       
-      <van-cell-group inset>
-        <van-cell title="WebDAV 云端数据同步" is-link to="/sync-manage" />
-        <van-cell title="年度数据冷温结转归档" is-link @click="showArchive = true" />
-        <van-cell title="隐私模式 (隐藏金额)" center>
+      <van-cell-group inset class="custom-inset-group">
+        <van-cell title="WebDAV 云端数据同步" is-link to="/sync-manage" icon="cloud-o" />
+        <van-cell title="年度数据冷温结转归档" is-link @click="showArchive = true" icon="box-o" />
+        <van-cell title="导入账单数据 (CSV)" is-link to="/import" icon="down" />
+        <van-cell title="导出数据 (CSV)" is-link @click="exportData" icon="share-o" />
+      </van-cell-group>
+      
+      <van-cell-group inset class="custom-inset-group">
+        <van-cell title="隐私模式 (隐藏金额)" center icon="closed-eye">
           <template #right-icon>
-            <van-switch v-model="accountStore.privacyMode" size="24" />
+            <van-switch v-model="accountStore.privacyMode" size="20" />
           </template>
         </van-cell>
-        <van-cell title="导入账单数据 (CSV)" is-link to="/import" />
-        <van-cell title="导出数据 (CSV)" is-link @click="exportData" />
-        <van-cell title="深色模式 (重开生效)" center>
+        <van-cell title="深色模式 (重体验段)" center icon="moon-o">
           <template #right-icon>
-            <van-switch v-model="isDarkMode" size="24" />
+            <van-switch v-model="isDarkMode" size="20" />
           </template>
         </van-cell>
       </van-cell-group>
       
-      <div class="space"></div>
-      
-      <van-cell-group inset>
-        <van-cell title="退出登录" is-link class="danger-text" @click="handleLogout" />
-        <van-cell title="清空所有单机数据" is-link class="danger-text" @click="clearAll" />
+      <van-cell-group inset class="custom-inset-group">
+        <van-cell title="退出登录" is-link @click="handleLogout" icon="revoke" class="logout-cell" />
+        <van-cell title="清空所有单机数据" is-link @click="clearAll" icon="delete-o" class="danger-cell" />
       </van-cell-group>
+      
+      <div class="bottom-padding"></div>
     </div>
 
     <!-- 预算设置弹窗 -->
-    <van-dialog v-model:show="showBudget" title="设置月度预算" show-cancel-button @confirm="onConfirmBudget">
-      <van-field v-model="tempBudget" type="number" label="预算金额" placeholder="请输入每月预算" />
+    <van-dialog v-model:show="showBudget" title="设置月度预算" show-cancel-button @confirm="onConfirmBudget" class="custom-dialog">
+      <van-field v-model="tempBudget" type="number" label="预算金额" placeholder="请输入每月预算" :border="false" />
     </van-dialog>
 
     <!-- 归档设置弹窗 -->
-    <van-dialog v-model:show="showArchive" title="年度历史数据归档" show-cancel-button @confirm="onConfirmArchive">
-      <div style="padding: 16px; font-size: 14px; color: #999; line-height: 1.5;">
-        将指定年度及之前的账单移入冷存储层释放极速性能。此操作会在次年初自动生成一笔【期初结转】保证总资产不变。
+    <van-dialog v-model:show="showArchive" title="年度记录归档" show-cancel-button @confirm="onConfirmArchive" class="custom-dialog">
+      <div class="dialog-tips">
+        将指定年度及之前的账单封存入历史。此操作会在次年初自动生成一笔【期初结转】保证总资产不变。
       </div>
-      <van-field v-model="archiveYear" type="digit" label="结转至年份" placeholder="如 2024" />
+      <van-field v-model="archiveYear" type="digit" label="结转至年份" placeholder="如 2024" :border="false" />
     </van-dialog>
   </div>
 </template>
@@ -308,56 +322,125 @@ const handleLogout = () => {
   flex-direction: column;
   height: 100%;
   background-color: var(--bg-color-secondary);
+  overflow-y: auto;
   
-  .user-card {
-    display: flex;
-    align-items: center;
-    padding: 30px 20px 40px;
-    background: linear-gradient(135deg, var(--van-primary-color), #23d47a);
-    color: #fff;
-    margin-bottom: -20px;
-    
-    .avatar {
-      width: 60px;
-      height: 60px;
-      background-color: rgba(255,255,255,0.2);
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-right: 16px;
-    }
-    
-    .info {
-      .name {
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 4px;
-      }
-      .desc {
-        font-size: 13px;
-        opacity: 0.8;
-      }
-    }
+  // 底部留白，防止被 Tabbar 挡住
+  .bottom-padding {
+    height: 80px;
   }
   
-  .asset-card {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    margin: 0 16px 16px;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    z-index: 10;
-    
-    .asset-row {
+  // 统一的 Din 字体
+  .din-font {
+    font-family: 'Din', 'Arial', sans-serif;
+  }
+
+  // ==== 1. 超级资产大盘卡 ====
+  .hero-asset-card {
+    margin: 16px 16px 20px;
+    padding: 24px 20px 20px;
+    background: linear-gradient(145deg, var(--bg-color-primary), var(--bg-color-secondary));
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(var(--van-primary-color-rgb), 0.1);
+    position: relative;
+    overflow: hidden;
+
+    // 装饰性光晕背景
+    &::after {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -20%;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(var(--van-primary-color-rgb), 0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .user-info {
       display: flex;
       align-items: center;
-      justify-content: space-around;
+      margin-bottom: 24px;
       
-      .asset-item {
+      .avatar-wrap {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background-color: var(--bg-color-secondary);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-right: 16px;
+        border: 2px solid #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+
+        .default-avatar {
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background: var(--van-primary-color);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+      }
+      
+      .text-info {
+        flex: 1;
+        .main-title {
+          display: flex;
+          align-items: center;
+          margin-bottom: 6px;
+          
+          .name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-color-primary);
+            margin-right: 8px;
+          }
+          .badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background-color: rgba(var(--van-primary-color-rgb), 0.1);
+            color: var(--van-primary-color);
+            font-weight: 500;
+          }
+        }
+        .sub-title {
+          font-size: 12px;
+          color: var(--text-color-secondary);
+        }
+      }
+    }
+
+    .net-asset-section {
+      text-align: center;
+      margin-bottom: 24px;
+      
+      .label {
+        font-size: 13px;
+        color: var(--text-color-secondary);
+        margin-bottom: 4px;
+      }
+      .value {
+        font-size: 36px;
+        font-weight: bold;
+        color: var(--text-color-primary);
+        line-height: 1.1;
+      }
+    }
+
+    .sub-assets-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 20px;
+      border-top: 1px dashed var(--border-color);
+      
+      .asset-col {
+        flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -365,161 +448,263 @@ const handleLogout = () => {
         
         &:active {
           transform: scale(0.95);
-          opacity: 0.8;
+          opacity: 0.7;
         }
         
-        .label {
-          font-size: 13px;
+        .col-label {
+          font-size: 12px;
           color: var(--text-color-secondary);
           margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          
+          .van-icon {
+            font-size: 10px;
+            margin-left: 2px;
+            opacity: 0.5;
+          }
         }
-        
-        .value {
+        .col-val {
           font-size: 18px;
           font-weight: 600;
           color: var(--text-color-primary);
           
-          &.text-danger {
-            color: var(--van-danger-color);
-          }
+          &.green { color: var(--van-success-color); }
+          &.red { color: var(--van-danger-color); }
         }
       }
-      
+
       .divider {
         width: 1px;
-        height: 30px;
-        background-color: #ebedf0;
+        height: 24px;
+        background-color: var(--border-color);
       }
     }
   }
 
-  .goals-section {
-    margin: 0 16px 16px;
-    background-color: var(--bg-color-primary);
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  // ==== 2. 横向滑动组件块 ====
+  .widget-section {
+    margin-bottom: 20px;
 
     .section-header {
+      padding: 0 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 12px;
-      .title { font-weight: bold; font-size: 15px; }
-      .action { font-size: 13px; color: var(--text-color-secondary); display: flex; align-items: center; }
-    }
-
-    .goals-scroll {
-      display: flex;
-      overflow-x: auto;
-      gap: 12px;
-      padding-bottom: 4px;
-      &::-webkit-scrollbar { display: none; }
       
-      .goal-item {
-        flex: 0 0 140px;
-        background-color: var(--bg-color-secondary);
-        border-radius: 8px;
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        
-        .g-icon { margin-bottom: 8px; font-size: 20px; color: var(--van-primary-color); }
-        .g-info {
-          .g-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          .g-progress { font-size: 11px; color: var(--text-color-secondary); margin-bottom: 6px; }
-          .g-current { color: var(--text-color-primary); font-weight: bold; }
-        }
-        
-        transition: all 0.2s;
-        &:active {
-          transform: scale(0.95);
-          opacity: 0.8;
-        }
-      }
-    }
-  }
-
-  .budget-alert-card {
-    background-color: var(--bg-color-primary);
-    margin: 0 16px 16px;
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-
-    .alert-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--van-danger-color);
-      display: flex;
-      align-items: center;
-      margin-bottom: 12px;
-      
-      .van-icon {
-        margin-right: 6px;
-      }
-    }
-
-    .alert-item {
-      margin-bottom: 12px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .cat-info {
+      .title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-color-primary);
         display: flex;
         align-items: center;
-        margin-bottom: 4px;
-
-        .cat-icon {
-          color: var(--van-primary-color);
-          margin-right: 6px;
-        }
-        .cat-name {
-          font-size: 14px;
-          color: var(--text-color-primary);
+        
+        .count {
+          font-size: 12px;
+          font-weight: normal;
+          opacity: 0.6;
+          margin-left: 4px;
         }
       }
-
-      .budget-info {
+      
+      .action {
         font-size: 12px;
         color: var(--text-color-secondary);
         display: flex;
-        justify-content: space-between;
-        margin-bottom: 6px;
-
-        .danger {
-          color: var(--van-danger-color);
-          font-weight: 500;
-        }
+        align-items: center;
+        
+        .van-icon { margin-left: 2px; }
+        
+        &:active { opacity: 0.6; }
       }
+    }
 
-      .progress {
-        height: 6px;
-        background-color: var(--bg-color-secondary);
-        border-radius: 3px;
-        overflow: hidden;
+    .snap-scroll-row {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding: 0 16px 8px;
+      gap: 12px;
+      
+      &::-webkit-scrollbar { display: none; }
 
-        .fill.danger-bg {
-          height: 100%;
-          background-color: var(--van-danger-color);
-          transition: width 0.3s;
+      .snap-card {
+        scroll-snap-align: start;
+        flex: 0 0 160px;
+        background-color: var(--bg-color-primary);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s;
+        border: 1px solid rgba(0,0,0,0.02);
+        
+        &:active { transform: scale(0.97); }
+
+        .card-top {
+          display: flex;
+          align-items: center;
+          margin-bottom: 12px;
+          
+          .icon-box {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background-color: rgba(var(--van-primary-color-rgb), 0.1);
+            color: var(--van-primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin-right: 8px;
+            
+            &.danger-box {
+              background-color: rgba(var(--van-danger-color-rgb), 0.1);
+              color: var(--van-danger-color);
+            }
+          }
+          
+          .name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-color-primary);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+
+        .card-mid {
+          display: flex;
+          align-items: baseline;
+          margin-bottom: 12px;
+          
+          .current {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-color-primary);
+            
+            &.danger-text { color: var(--van-danger-color); }
+          }
+          .slash {
+            margin: 0 4px;
+            font-size: 12px;
+            color: var(--text-color-secondary);
+            font-family: sans-serif;
+          }
+          .target {
+            font-size: 13px;
+            color: var(--text-color-secondary);
+          }
+        }
+
+        .card-bot {
+          .progress-bar {
+            height: 6px;
+            background-color: var(--bg-color-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+
+            .fill {
+              height: 100%;
+              border-radius: 3px;
+              transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              
+              &.pattern-bg {
+                background: var(--van-primary-color);
+                background-image: linear-gradient(
+                  45deg, 
+                  rgba(255,255,255,0.15) 25%, 
+                  transparent 25%, 
+                  transparent 50%, 
+                  rgba(255,255,255,0.15) 50%, 
+                  rgba(255,255,255,0.15) 75%, 
+                  transparent 75%, 
+                  transparent
+                );
+                background-size: 10px 10px;
+              }
+              
+              &.danger-bg {
+                background-color: var(--van-danger-color);
+              }
+            }
+          }
         }
       }
     }
   }
-  
+
+  // ==== 3. 设置列表区 (Inset Cells) ====
   .settings-list {
-    flex: 1;
-    z-index: 10;
+    padding-bottom: 20px; // extra padding top of bottom-padding
     
-    .space {
-      height: 12px;
+    .custom-inset-group {
+      margin: 0 16px 16px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+      background-color: var(--bg-color-primary);
+      
+      .van-cell {
+        background-color: transparent;
+        padding: 16px 20px;
+        font-size: 15px;
+        align-items: center;
+        
+        // 左边 icon 调色
+        :deep(.van-cell__left-icon) {
+          font-size: 18px;
+          margin-right: 12px;
+          color: var(--van-primary-color);
+          opacity: 0.9;
+        }
+        
+        // 覆盖按下时的颜色，使用更柔和的灰色
+        &:active {
+          background-color: var(--bg-color-secondary);
+        }
+        
+        // 退出登录与清空数据特殊样式
+        &.logout-cell :deep(.van-cell__left-icon),
+        &.danger-cell :deep(.van-cell__left-icon) {
+          color: var(--van-danger-color);
+        }
+        
+        &.logout-cell .van-cell__title,
+        &.danger-cell .van-cell__title {
+          color: var(--van-danger-color);
+        }
+      }
+    }
+  }
+
+  // ==== 4. 弹窗美化 ====
+  .custom-dialog {
+    border-radius: 20px;
+    
+    .van-dialog__header {
+      padding-top: 24px;
+      font-weight: 600;
     }
     
-    .danger-text {
-      color: var(--van-danger-color);
+    .dialog-tips {
+      padding: 16px 24px 0;
+      font-size: 13px;
+      color: var(--text-color-secondary);
+      line-height: 1.6;
+      text-align: center;
+    }
+    
+    .van-field {
+      margin: 16px 24px 24px;
+      background-color: var(--bg-color-secondary);
+      border-radius: 12px;
+      padding: 12px 16px;
+      width: auto;
     }
   }
 }

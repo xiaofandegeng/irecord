@@ -1,93 +1,129 @@
 <template>
-  <div class="report-container">
-    <div class="header">
-      <div class="filter-bar">
-        <span class="month-selector" @click="showPicker = true">
-          {{ displayDateText }} <van-icon name="arrow-down" />
-        </span>
-        <van-button size="small" type="primary" plain icon="photo-o" @click="generatePoster">生成长图</van-button>
-      </div>
-      <van-tabs v-model:active="recordType" type="card" color="var(--van-primary-color)">
-        <van-tab title="支出" :name="1"></van-tab>
-        <van-tab title="收入" :name="2"></van-tab>
-      </van-tabs>
-    </div>
-
-    <!-- 海报截取区域 -->
-    <div ref="posterRef" class="poster-wrapper">
-      <InsightCard />
-    
-      <!-- Tags Filter -->
-    <div class="tag-filter-bar" v-if="store.globalTags && store.globalTags.length > 0">
-      <span class="label">按标签筛选:</span>
-      <div class="tags-scroll">
-        <van-tag 
-          v-for="t in store.globalTags" 
-          :key="t" 
-          :plain="!activeTags.includes(t)" 
-          type="primary" 
-          size="medium"
-          class="filter-tag"
-          @click="toggleFilterTag(t)"
-        >
-          #{{ t }}
-        </van-tag>
-      </div>
-    </div>
-    
-    <div class="summary-card">
-      <div class="total-label">总{{ recordType === 1 ? '支出' : '收入' }}</div>
-      <div class="total-amount">{{ accountStore.privacyMode ? '****' : `¥ ${totalAmount.toFixed(2)}` }}</div>
-    </div>
-
-    <!-- 图表区 -->
-    <div class="chart-section" v-if="chartData.length > 0">
-      <div class="chart-title">收支趋势</div>
-      <ChartLine 
-        :xAxisData="lineXAxisData" 
-        :seriesData="lineSeriesData" 
-        :color="recordType === 1 ? '#1989fa' : '#ff976a'" 
-      />
-      <div class="chart-title" style="margin-top: 16px;">分类占比</div>
-      <ChartPie :data="chartData" />
-    </div>
-    
-    <!-- 排名列表 -->
-    <div class="rank-list" v-if="chartData.length > 0">
-      <div class="section-title">分类排行榜</div>
-      <div class="rank-item" v-for="item in rankedData" :key="item.id">
-        <div class="icon-wrap">
-          <van-icon :name="getCategoryIcon(item.id)" size="20" />
+  <div class="icost-report-container">
+    <!-- 顶部高斯模糊导航栏 -->
+    <div class="glass-header">
+      <div class="header-inner">
+        <!-- 左侧日期选择 -->
+        <div class="date-selector" @click="showPicker = true">
+          <span class="date-text">{{ displayDateText }}</span>
+          <van-icon name="arrow-down" class="arrow" />
         </div>
-        <div class="info">
-          <div class="title-row">
-            <span class="name">{{ item.name }}</span>
-            <span class="amount">{{ accountStore.privacyMode ? '****' : item.value.toFixed(2) }}</span>
-          </div>
-          <div class="progress-bar">
-            <!-- 直接使用内联样式驱动进度条宽度，计算占最高支出的比例 -->
-            <div class="fill" :style="{ width: `${(item.value / maxAmount) * 100}%` }"></div>
-          </div>
+        
+        <!-- 居中 Pill 切换器复用首页逻辑 -->
+        <div class="type-switch-pill">
+          <div 
+            class="pill-item" 
+            :class="{ active: recordType === 1 }" 
+            @click="recordType = 1"
+          >支出</div>
+          <div 
+            class="pill-item" 
+            :class="{ active: recordType === 2 }" 
+            @click="recordType = 2"
+          >收入</div>
+        </div>
+        
+        <!-- 右侧操作 -->
+        <div class="right-action">
+          <van-icon name="photograph" size="20" @click="generatePoster" />
         </div>
       </div>
     </div>
-    
-    <div v-else class="empty-state">
-      <van-empty image="error" description="本月暂无数据" />
-    </div>
-    </div> <!-- end poster-wrapper -->
+
+    <!-- 主要滚动视窗 -->
+    <div ref="posterRef" class="scroll-content">
+      <!-- 洞察卡片区 (可有可无) -->
+      <InsightCard class="insight-space" />
+
+      <!-- 横滑的标签过滤行 -->
+      <div class="tags-row" v-if="store.globalTags && store.globalTags.length > 0">
+        <div class="tags-scroll">
+          <div 
+            class="tag-pill" 
+            :class="{ active: activeTags.length === 0 }"
+            @click="activeTags = []"
+          >全部标签</div>
+          <div 
+            v-for="t in store.globalTags" 
+            :key="t" 
+            class="tag-pill"
+            :class="{ active: activeTags.includes(t) }"
+            @click="toggleFilterTag(t)"
+          >
+            #{{ t }}
+          </div>
+        </div>
+      </div>
+
+      <!-- 中心视觉：特大总金额 -->
+      <div class="hero-amount-section">
+        <div class="amount-label">总{{ recordType === 1 ? '支出' : '收入' }}</div>
+        <div class="amount-value">
+          <span class="symbol">¥</span>
+          {{ accountStore.privacyMode ? '****' : totalAmount.toFixed(2) }}
+        </div>
+      </div>
+
+      <!-- 数据为空时 -->
+      <div v-if="chartData.length === 0" class="empty-state">
+        <van-empty image="search" description="本期暂无账单数据" />
+      </div>
+
+      <template v-else>
+        <!-- iOS 拟态图表卡片 -->
+        <div class="widget-card">
+          <div class="widget-title">收支趋势</div>
+          <div class="chart-wrapper">
+             <ChartLine 
+              :xAxisData="lineXAxisData" 
+              :seriesData="lineSeriesData" 
+              :color="recordType === 1 ? '#1989fa' : '#ff976a'" 
+            />
+          </div>
+        </div>
+
+        <div class="widget-card">
+          <div class="widget-title">分类占比</div>
+          <div class="chart-wrapper">
+             <ChartPie :data="chartData" />
+          </div>
+        </div>
+
+        <!-- 排行榜卡片 -->
+        <div class="widget-card rank-widget">
+          <div class="widget-title">分类排行榜</div>
+          <div class="rank-list">
+            <div class="rank-item" v-for="item in rankedData" :key="item.id">
+              <div class="icon-wrap">
+                <van-icon :name="getCategoryIcon(item.id)" size="20" />
+              </div>
+              <div class="info">
+                <div class="title-row">
+                  <span class="name">{{ item.name }}</span>
+                  <span class="amount">{{ accountStore.privacyMode ? '****' : item.value.toFixed(2) }}</span>
+                </div>
+                <!-- 平滑胶囊形进度条 -->
+                <div class="smooth-progress">
+                  <div class="fill" :style="{ width: `${(item.value / maxAmount) * 100}%`, backgroundColor: recordType === 1 ? 'var(--van-primary-color)' : 'var(--van-warning-color)' }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div> <!-- scroll-content -->
 
     <!-- 日期选择器 -->
-    <van-popup v-model:show="showPicker" position="bottom">
+    <van-popup v-model:show="showPicker" position="bottom" round>
       <div class="picker-tabs">
-        <van-tabs v-model:active="dateType">
+        <van-tabs v-model:active="dateType" color="var(--van-primary-color)">
           <van-tab title="按月" name="month"></van-tab>
           <van-tab title="按年" name="year"></van-tab>
         </van-tabs>
       </div>
       <van-date-picker 
         v-model="pickerValue"
-        title="选择时间"
+        title="选择区间"
         :min-date="minDate"
         :max-date="maxDate"
         :columns-type="dateType === 'month' ? ['year', 'month'] : ['year']"
@@ -107,13 +143,10 @@ import { useRecordStore, type RecordItem } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
 import ChartPie from '@/components/ChartPie.vue'
 import ChartLine from '@/components/ChartLine.vue'
-import { useSettingStore } from '@/stores/setting'
 
 const posterRef = ref<HTMLElement | null>(null)
-
 const store = useRecordStore()
 const accountStore = useAccountStore()
-const settingStore = useSettingStore()
 
 const recordType = ref<1 | 2>(1)
 const dateType = ref<'month' | 'year'>('month')
@@ -151,7 +184,7 @@ const onConfirmDate = ({ selectedValues }: any) => {
   showPicker.value = false
 }
 
-// 获取分类信息辅助函数
+// 辅助函数
 const getCategoryIcon = (id: string) => {
   const cat = store.categories.find(c => c.id === id)
   return cat ? cat.icon : 'question-o'
@@ -169,22 +202,18 @@ const toggleFilterTag = (tag: string) => {
   }
 }
 
-// 提取当前选中时长的数据
+// 获取过滤数据
 const filteredRecords = computed(() => {
   return store.currentLedgerRecords.filter((r: RecordItem) => {
-    // 基础过滤
     if (r.type !== recordType.value) return false
     
-    // 排除投资理财账户的流水记录
     if (r.accountId) {
       const acc = accountStore.accounts.find(a => a.id === r.accountId)
       if (acc && acc.type === 4) return false
     }
     
-    // 标签过滤
     if (activeTags.value.length > 0) {
       if (!r.tags || r.tags.length === 0) return false
-      // 只要包含选中的任意一个标签即可
       const hasMatch = activeTags.value.some(t => r.tags!.includes(t))
       if (!hasMatch) return false
     }
@@ -204,14 +233,12 @@ const totalAmount = computed(() => {
   return filteredRecords.value.reduce((sum, r) => sum + (r.amount * (r.exchangeRate || 1)), 0)
 })
 
-// 聚合数据供图表使用
 const chartData = computed(() => {
   const map: Record<string, number> = {}
   filteredRecords.value.forEach(r => {
     if (!map[r.categoryId]) map[r.categoryId] = 0
     map[r.categoryId] += (r.amount * (r.exchangeRate || 1))
   })
-  
   return Object.keys(map).map(id => ({
     id,
     name: getCategoryName(id),
@@ -219,16 +246,11 @@ const chartData = computed(() => {
   }))
 })
 
-// 排行榜数据与最大值
-const rankedData = computed(() => {
-  return [...chartData.value].sort((a, b) => b.value - a.value)
-})
+const rankedData = computed(() => [...chartData.value].sort((a, b) => b.value - a.value))
 
-// 折线图数据 (按天或按月聚合)
 const lineXAxisData = computed(() => {
   if (dateType.value === 'month') {
     const [yearStr, monthStr] = pickerValue.value
-    // 计算当月天数
     const days = new Date(Number(yearStr), Number(monthStr), 0).getDate()
     return Array.from({ length: days }, (_, i) => `${i + 1}日`)
   } else {
@@ -238,216 +260,261 @@ const lineXAxisData = computed(() => {
 
 const lineSeriesData = computed(() => {
   const data = new Array(lineXAxisData.value.length).fill(0)
-  
   filteredRecords.value.forEach(r => {
     const d = new Date(r.recordTime)
     const convertedAmount = r.amount * (r.exchangeRate || 1)
     if (dateType.value === 'month') {
-      const dayIndex = d.getDate() - 1 // 1号对应索引0
+      const dayIndex = d.getDate() - 1
       data[dayIndex] += convertedAmount
     } else {
-      const monthIndex = d.getMonth() // 0-11
+      const monthIndex = d.getMonth()
       data[monthIndex] += convertedAmount
     }
   })
-  
-  // 保留两位小数
   return data.map(v => Number(v.toFixed(2)))
 })
-const maxAmount = computed(() => {
-  return rankedData.value.length > 0 ? rankedData.value[0].value : 1
-})
+
+const maxAmount = computed(() => rankedData.value.length > 0 ? rankedData.value[0].value : 1)
 
 const generatePoster = async () => {
   if (!posterRef.value) return
   if (chartData.value.length === 0) {
-    showToast('暂无数据，无需生成长图')
+    showToast('暂无数据可以生成长图')
     return
   }
-  
-  const toast = showLoadingToast({
-    message: '正在生成专属海报...',
-    forbidClick: true,
-  })
-
+  const toast = showLoadingToast({ message: '生成中...', forbidClick: true })
   try {
-    const canvas = await html2canvas(posterRef.value, {
-      scale: 2, // 提高清晰度
-      useCORS: true,
-      backgroundColor: settingStore.isDark ? '#000000' : '#f7f8fa' // 确保背景色填充
-    })
-    
+    const canvas = await html2canvas(posterRef.value, { scale: 2, useCORS: true, backgroundColor: '#fcfcfc' })
     const imgUrl = canvas.toDataURL('image/png')
-    
-    // 打开预览模式供用户长按保存
-    showImagePreview({
-      images: [imgUrl],
-      closeable: true,
-      showIndex: false
-    })
-    
+    showImagePreview({ images: [imgUrl], closeable: true, showIndex: false })
     toast.close()
-    showToast('长按图片可保存分享')
+    showToast('长按保存')
   } catch (err) {
     toast.close()
     showToast('生成海报失败')
-    console.error(err)
   }
 }
 </script>
 
 <style lang="scss" scoped>
-.report-container {
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  background-color: var(--bg-color-secondary);
-  min-height: 100%;
+.icost-report-container {
+  min-height: 100vh;
+  background-color: var(--bg-color-secondary); // 底层背景浅灰，衬托白色卡片
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
   
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+  /* 毛玻璃悬浮导航 */
+  .glass-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 0.5px solid rgba(0, 0, 0, 0.05); // iOS风格细线
     
-    .month-selector {
-      font-size: 16px;
-      font-weight: 500;
+    .header-inner {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 4px;
+      padding: 12px 16px;
+      
+      .date-selector {
+        display: flex;
+        align-items: center;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-color-primary);
+        
+        .arrow {
+          font-size: 14px;
+          margin-left: 4px;
+          color: var(--text-color-secondary);
+        }
+      }
+      
+      .type-switch-pill {
+        display: flex;
+        background-color: var(--bg-color-secondary); // 深一点的槽
+        border-radius: 8px;
+        padding: 4px;
+        width: 140px;
+        
+        .pill-item {
+          flex: 1;
+          text-align: center;
+          padding: 6px 0;
+          font-size: 14px;
+          border-radius: 6px;
+          color: var(--text-color-secondary);
+          transition: all 0.2s ease;
+          
+          &.active {
+            background-color: var(--bg-color-primary); // 白色滑块
+            color: var(--text-color-primary);
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+          }
+        }
+      }
+      
+      .right-action {
+        color: var(--van-primary-color);
+        width: 30px; // 保持平衡
+        text-align: right;
+      }
     }
-  }
-    
-  .poster-wrapper {
-    background-color: var(--bg-color-secondary);
-    padding-bottom: 24px; // 避免切图时底部太紧凑
   }
 
-  .tag-filter-bar {
-    display: flex;
-    align-items: center;
-    margin-bottom: 16px;
-    
-    .label {
-      font-size: 12px;
-      color: var(--text-color-secondary);
-      margin-right: 8px;
-      flex-shrink: 0;
-    }
+  .scroll-content {
+    padding: 16px 16px 40px;
+    background-color: var(--bg-color-secondary);
+  }
+
+  /* 标签横向滑动列 */
+  .tags-row {
+    margin-bottom: 24px;
     
     .tags-scroll {
       display: flex;
       overflow-x: auto;
-      gap: 8px;
+      gap: 10px;
       padding-bottom: 4px;
       
-      &::-webkit-scrollbar {
-        display: none;
-      }
+      &::-webkit-scrollbar { display: none; }
       
-      .filter-tag {
-        cursor: pointer;
-        white-space: nowrap;
+      .tag-pill {
+        padding: 6px 14px;
+        background-color: var(--bg-color-primary);
+        color: var(--text-color-secondary);
+        border-radius: 16px;
+        font-size: 13px;
+        flex-shrink: 0;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        transition: all 0.2s;
+        
+        &.active {
+          background-color: var(--van-primary-color);
+          color: #fff;
+          box-shadow: 0 2px 6px rgba(25, 137, 250, 0.2);
+        }
       }
     }
   }
-  
-  .summary-card {
-    background-color: var(--bg-color-primary);
-    border-radius: 12px;
-    padding: 20px;
+
+  /* 特大全局总金额 */
+  .hero-amount-section {
     text-align: center;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    margin-bottom: 32px;
+    padding-top: 10px;
     
-    .total-label {
+    .amount-label {
       font-size: 14px;
       color: var(--text-color-secondary);
       margin-bottom: 8px;
+      letter-spacing: 1px;
     }
     
-    .total-amount {
-      font-size: 32px;
+    .amount-value {
+      font-size: 42px;
+      font-weight: bold;
+      font-family: 'Din', 'Arial', sans-serif;
+      color: var(--text-color-primary);
+      line-height: 1;
+      
+      .symbol {
+        font-size: 24px;
+        margin-right: 2px;
+        color: var(--text-color-regular);
+      }
+    }
+  }
+
+  /* 通用Widget圆角卡片 */
+  .widget-card {
+    background-color: var(--bg-color-primary);
+    border-radius: 16px;
+    padding: 20px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.03); // 更大更柔和的阴影
+    
+    .widget-title {
+      font-size: 16px;
       font-weight: bold;
       color: var(--text-color-primary);
-    }
-  }
-  
-  .chart-section {
-    background-color: var(--bg-color-primary);
-    border-radius: 12px;
-    padding: 16px 0;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    
-    .chart-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-color-primary);
-      padding: 0 16px;
-      margin-bottom: 8px;
-    }
-  }
-  
-  .rank-list {
-    background-color: var(--bg-color-primary);
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    
-    .section-title {
-      font-size: 16px;
-      font-weight: 500;
       margin-bottom: 16px;
     }
     
-    .rank-item {
+    .chart-wrapper {
+      width: 100%;
+      // 为依赖尺寸的绘制区域建立约束
+      min-height: 180px;
+    }
+  }
+
+  /* 排行榜区 */
+  .rank-widget {
+    .rank-list {
       display: flex;
-      align-items: center;
-      margin-bottom: 16px;
+      flex-direction: column;
+      gap: 16px;
       
-      &:last-child {
-        margin-bottom: 0;
-      }
-      
-      .icon-wrap {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background-color: var(--bg-color-secondary);
-        color: var(--van-primary-color);
+      .rank-item {
         display: flex;
         align-items: center;
-        justify-content: center;
-        margin-right: 12px;
-      }
-      
-      .info {
-        flex: 1;
         
-        .title-row {
+        .icon-wrap {
+          width: 40px;
+          height: 40px;
+          border-radius: 20px;
+          background-color: var(--bg-color-secondary);
+          color: var(--text-color-primary);
           display: flex;
-          justify-content: space-between;
-          font-size: 14px;
-          margin-bottom: 6px;
+          align-items: center;
+          justify-content: center;
+          margin-right: 12px;
         }
         
-        .progress-bar {
-          height: 6px;
-          background-color: var(--bg-color-secondary);
-          border-radius: 3px;
-          overflow: hidden;
+        .info {
+          flex: 1;
           
-          .fill {
-            height: 100%;
-            background-color: var(--van-primary-color);
+          .title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 15px;
+            margin-bottom: 8px;
+            
+            .name { font-weight: 500; color: var(--text-color-primary); }
+            .amount { font-family: 'Din', sans-serif; font-size: 16px; font-weight: bold; }
+          }
+          
+          .smooth-progress {
+            height: 6px; // 纤细的 iOS 感
+            background-color: var(--bg-color-secondary);
             border-radius: 3px;
-            transition: width 0.3s ease;
+            overflow: hidden;
+            
+            .fill {
+              height: 100%;
+              border-radius: 3px;
+              transition: width 0.4s cubic-bezier(0.1, 0.7, 0.1, 1);
+            }
           }
         }
       }
     }
   }
+
+  .insight-space {
+    margin-bottom: 16px;
+  }
+}
+
+// 适配暗黑模式底色
+:deep([data-theme='dark']) .glass-header {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
 }
 </style>
