@@ -145,14 +145,14 @@ const onDelete = (ledger: Ledger) => {
       display: flex;
       align-items: center;
       padding: 16px;
-      background-color: #fff;
+      background-color: var(--bg-color-primary);
       border-bottom: 1px solid #f5f6f7;
       
       .icon-wrap {
         width: 48px;
         height: 48px;
         border-radius: 12px;
-        background-color: #f7f8fa;
+        background-color: var(--bg-color-secondary);
         color: var(--text-color-secondary);
         display: flex;
         justify-content: center;
@@ -198,7 +198,7 @@ const onDelete = (ledger: Ledger) => {
   
   .bottom-action {
     padding: 16px;
-    background-color: #fff;
+    background-color: var(--bg-color-primary);
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
     box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
   }
@@ -223,7 +223,7 @@ const onDelete = (ledger: Ledger) => {
         justify-content: center;
         align-items: center;
         border-radius: 8px;
-        background-color: #f7f8fa;
+        background-color: var(--bg-color-secondary);
         color: var(--text-color-secondary);
         transition: all 0.2s;
         

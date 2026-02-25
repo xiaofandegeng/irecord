@@ -6,6 +6,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useSettingStore } from '@/stores/setting'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -32,7 +33,13 @@ const props = defineProps<{
   color?: string
 }>()
 
+const settingStore = useSettingStore()
+
 const option = computed(() => {
+  const isDark = settingStore.isDark
+  const axisLineColor = isDark ? '#3a3a3c' : '#ebedf0'
+  const axisTextColor = isDark ? '#a1a1a6' : '#969799'
+
   return {
     tooltip: {
       trigger: 'axis',
@@ -51,23 +58,23 @@ const option = computed(() => {
       data: props.xAxisData,
       axisLine: {
         lineStyle: {
-          color: '#ebedf0'
+          color: axisLineColor
         }
       },
       axisLabel: {
-        color: '#969799'
+        color: axisTextColor
       }
     },
     yAxis: {
       type: 'value',
       splitLine: {
         lineStyle: {
-          color: '#ebedf0',
+          color: axisLineColor,
           type: 'dashed'
         }
       },
       axisLabel: {
-        color: '#969799'
+        color: axisTextColor
       }
     },
     series: [

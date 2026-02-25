@@ -4,6 +4,7 @@
       <div class="title-bar">
         <div class="title">账单明细</div>
         <div class="actions">
+          <span class="batch-btn" @click="toggleBatchMode" v-if="viewMode === 'list'">{{ isBatchMode ? '完成' : '批量管理' }}</span>
           <van-icon :name="viewMode === 'list' ? 'calendar-o' : 'orders-o'" size="22" class="action-icon" @click="toggleViewMode" />
           <van-icon name="search" size="22" class="action-icon" @click="goSearch" />
         </div>
@@ -31,8 +32,11 @@
           </div>
           
           <transition-group name="list" tag="div" class="record-list">
-            <van-swipe-cell v-for="record in records" :key="record.id">
-              <div class="record-item">
+            <van-swipe-cell v-for="record in records" :key="record.id" :disabled="isBatchMode">
+              <div class="record-item" :class="{ 'is-batch': isBatchMode }" @click="toggleSelection(record.id)">
+                <div class="batch-checkbox" v-if="isBatchMode">
+                  <van-checkbox :name="record.id" :model-value="selectedRecordIds.includes(record.id)" @click.stop="toggleSelection(record.id)" shape="square" checked-color="var(--van-primary-color)" />
+                </div>
                 <div class="icon-wrap" :class="{'is-income': record.type === 2}">
                   <van-icon :name="getCategoryIcon(record.categoryId)" size="20" />
                 </div>
@@ -59,10 +63,24 @@
                       #{{ tag }}
                     </van-tag>
                   </div>
+                  <div class="attachments-line" v-if="record.attachments && record.attachments.length > 0">
+                    <van-image
+                      v-for="(img, idx) in record.attachments"
+                      :key="idx"
+                      :src="img"
+                      width="40px"
+                      height="40px"
+                      fit="cover"
+                      radius="4px"
+                      class="attach-thumb"
+                      @click.stop="previewImage(record.attachments, idx)"
+                    />
+                  </div>
                 </div>
               </div>
               
               <template #right>
+                <van-button v-if="record.type === 1 && !record.refundForId && record.amount > 0" square text="退款" type="warning" class="refund-button" @click="onRefund(record)" />
                 <van-button square text="删除" type="danger" class="delete-button" @click="onDelete(record.id)" />
               </template>
             </van-swipe-cell>
@@ -74,33 +92,140 @@
       </div>
     </div>
 
-    <!-- 日历视图 -->
+    <!-- 日历视图 / 活跃热力图 -->
     <div class="calendar-area" v-else>
-      <van-calendar
-        title="收支日历"
-        :poppable="false"
-        :show-confirm="false"
-        :formatter="calendarFormatter"
-        class="custom-calendar"
-        :min-date="minDate"
-        :max-date="maxDate"
-      />
+      <ContributionHeatmap :grouped-records="groupedRecords" />
     </div>
+
+    <!-- 批量操作底栏 -->
+    <van-action-bar v-if="isBatchMode && viewMode === 'list'">
+      <van-action-bar-button type="default" :text="selectedRecordIds.length === allRecords.length ? '取消全选' : '全选'" @click="selectAll" />
+      <van-action-bar-button type="warning" text="修改分类" @click="showBatchCategoryPicker = true" :disabled="selectedRecordIds.length === 0" />
+      <van-action-bar-button type="danger" text="删除" @click="onBatchDelete" :disabled="selectedRecordIds.length === 0" />
+    </van-action-bar>
+
+    <van-action-sheet v-model:show="showBatchCategoryPicker" :actions="batchCategoryActions" cancel-text="取消" @select="onSelectBatchCategory" />
+
+    <!-- 退款操作弹窗 -->
+    <van-dialog v-model:show="showRefund" title="记录退款" show-cancel-button @confirm="onConfirmRefund">
+      <div style="padding: 16px; font-size: 14px; color: #666; text-align: center;">
+        原支出：{{ currentRefundRecord?.amount.toFixed(2) }} 
+        <span v-if="currentRefundRecord?.currency">{{ currentRefundRecord.currency }}</span>
+      </div>
+      <van-field v-model="refundAmount" type="number" label="退款金额" placeholder="请输入退回的金额" />
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { showConfirmDialog } from 'vant'
+import { showConfirmDialog, showImagePreview, showToast } from 'vant'
 import { useRecordStore, type RecordItem } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
+import ContributionHeatmap from '@/components/ContributionHeatmap.vue'
 
 const store = useRecordStore()
 const accountStore = useAccountStore()
 const router = useRouter()
 
 const viewMode = ref<'list' | 'calendar'>('list')
+const isBatchMode = ref(false)
+const selectedRecordIds = ref<string[]>([])
+
+const toggleBatchMode = () => {
+  isBatchMode.value = !isBatchMode.value
+  selectedRecordIds.value = []
+}
+
+const toggleSelection = (id: string) => {
+  if (!isBatchMode.value) return
+  if (selectedRecordIds.value.includes(id)) {
+    selectedRecordIds.value = selectedRecordIds.value.filter(i => i !== id)
+  } else {
+    selectedRecordIds.value.push(id)
+  }
+}
+
+const selectAll = () => {
+  if (selectedRecordIds.value.length === allRecords.value.length) {
+    selectedRecordIds.value = []
+  } else {
+    selectedRecordIds.value = allRecords.value.map(r => r.id)
+  }
+}
+
+const showBatchCategoryPicker = ref(false)
+const batchCategoryActions = computed(() => {
+  return store.categories.map(c => ({
+    name: c.name + (c.type === 1 ? ' (支出)' : ' (收入)'),
+    value: c.id
+  }))
+})
+
+const onSelectBatchCategory = (action: any) => {
+  const cat = store.categories.find(c => c.id === action.value)
+  if (cat) {
+    selectedRecordIds.value.forEach(id => {
+      const r = store.records.find(re => re.id === id)
+      if (r) {
+        r.categoryId = cat.id
+        r.type = cat.type
+      }
+    })
+    showToast('批量修改分类成功')
+  }
+  showBatchCategoryPicker.value = false
+  toggleBatchMode()
+}
+
+const onBatchDelete = () => {
+  if (selectedRecordIds.value.length === 0) return
+  showConfirmDialog({
+    title: '确认删除',
+    message: `确定要删除选中的 ${selectedRecordIds.value.length} 条记录吗？`
+  }).then(() => {
+    const ids = [...selectedRecordIds.value]
+    ids.forEach(id => {
+      store.deleteRecord(id)
+    })
+    showToast('批量删除成功')
+    toggleBatchMode()
+  }).catch(() => {})
+}
+
+const showRefund = ref(false)
+const currentRefundRecord = ref<RecordItem | null>(null)
+const refundAmount = ref('')
+
+const onRefund = (record: RecordItem) => {
+  currentRefundRecord.value = record
+  refundAmount.value = String(record.amount)
+  showRefund.value = true
+}
+
+const onConfirmRefund = () => {
+  if (currentRefundRecord.value) {
+    const val = parseFloat(refundAmount.value) || 0
+    if (val <= 0 || val > currentRefundRecord.value.amount) {
+      showToast('退款金额无效(不能大于原支出金额)')
+      return
+    }
+    
+    const refundRecord: RecordItem = {
+      ...currentRefundRecord.value,
+      id: 'r_' + Date.now(),
+      amount: -val,
+      remark: `退款: ${currentRefundRecord.value.remark || '无备注'}`,
+      recordTime: Date.now(),
+      createTime: Date.now(),
+      refundForId: currentRefundRecord.value.id
+    }
+    
+    store.addRecord(refundRecord)
+    showToast('退款入账成功')
+  }
+}
 
 const toggleViewMode = () => {
   viewMode.value = viewMode.value === 'list' ? 'calendar' : 'list'
@@ -125,10 +250,10 @@ const getCategoryIcon = (id: string) => {
 
 // 总计
 const totalExpense = computed(() => {
-  return allRecords.value.filter(r => r.type === 1).reduce((sum, r) => sum + r.amount, 0)
+  return allRecords.value.filter(r => r.type === 1).reduce((sum, r) => sum + (r.amount * (r.exchangeRate || 1)), 0)
 })
 const totalIncome = computed(() => {
-  return allRecords.value.filter(r => r.type === 2).reduce((sum, r) => sum + r.amount, 0)
+  return allRecords.value.filter(r => r.type === 2).reduce((sum, r) => sum + (r.amount * (r.exchangeRate || 1)), 0)
 })
 
 // 按日期分组格式: YYYY-MM-DD
@@ -152,8 +277,9 @@ const getDailySum = (records: RecordItem[]) => {
   let exp = 0
   let inc = 0
   records.forEach(r => {
-    if (r.type === 1) exp += r.amount
-    else inc += r.amount
+    const amt = r.amount * (r.exchangeRate || 1)
+    if (r.type === 1) exp += amt
+    else inc += amt
   })
   let res = []
   if (exp > 0) res.push(`支 ${exp.toFixed(2)}`)
@@ -182,44 +308,17 @@ const onDelete = (id: string) => {
   }).catch(() => {})
 }
 
-// ================= 日历相关 ================= //
-// 日历的可选范围：向前一年到今天
-const minDate = new Date()
-minDate.setFullYear(minDate.getFullYear() - 1)
-const maxDate = new Date()
-
-// 提供给日历组件的格式化函数（渲染每天底部的小字说明）
-const calendarFormatter = (day: any) => {
-  const d = day.date as Date
-  if (!d) return day
-
-  const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  const recordsForDay = groupedRecords.value[dateKey]
-
-  if (recordsForDay && recordsForDay.length > 0) {
-    let exp = 0
-    let inc = 0
-    recordsForDay.forEach(r => {
-      if (r.type === 1) exp += r.amount
-      else inc += r.amount
-    })
-    
-    // 我们用 bottomInfo 显示每天的主导收支。支出较多则标红，收入较多标绿
-    if (accountStore.privacyMode) {
-      day.bottomInfo = '****'
-    } else if (exp > inc) {
-      day.bottomInfo = `-${exp.toFixed(0)}`
-      day.className = 'calendar-expense-day'
-    } else if (inc > exp) {
-      day.bottomInfo = `+${inc.toFixed(0)}`
-      day.className = 'calendar-income-day'
-    } else {
-      day.bottomInfo = '0'
-    }
-  }
-
-  return day
+// 预览大图
+const previewImage = (images: string[], startPosition: number) => {
+  showImagePreview({
+    images,
+    startPosition,
+    closeable: true
+  })
 }
+
+// ================= 日历相关 ================= //
+// 已移除原本的 Vant vanilla calendar 逻辑，改为内部封装的 ContributionHeatmap 接受数据源渲染
 </script>
 
 <style lang="scss" scoped>
@@ -254,6 +353,15 @@ const calendarFormatter = (day: any) => {
         .action-icon {
           // padding to make it easier to click
           padding: 4px;
+        }
+
+        .batch-btn {
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          padding: 4px;
+          cursor: pointer;
+          opacity: 0.9;
         }
       }
     }
@@ -301,16 +409,30 @@ const calendarFormatter = (day: any) => {
       }
       
       .record-item {
-        display: flex;
-        align-items: center;
-        padding: 12px 16px;
-        background-color: #fff;
-        
-        .icon-wrap {
+          display: flex;
+          align-items: center;
+          padding: 12px 16px;
+          background-color: var(--bg-color-primary);
+          transition: background-color 0.2s;
+          
+          &.is-batch {
+            cursor: pointer;
+            &:active {
+              background-color: #f5f5f5;
+            }
+          }
+
+          .batch-checkbox {
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+          }
+          
+          .icon-wrap {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background-color: #f7f8fa;
+          background-color: var(--bg-color-secondary);
           color: var(--van-primary-color);
           display: flex;
           align-items: center;
@@ -355,16 +477,28 @@ const calendarFormatter = (day: any) => {
               margin-right: 8px;
             }
           }
-          
           .tags-line {
             display: flex;
             flex-wrap: wrap;
             gap: 4px;
+            margin-top: 4px;
             
             .mini-tag {
               font-size: 10px;
               padding: 0 4px;
               border-radius: 4px;
+            }
+          }
+          
+          .attachments-line {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            
+            .attach-thumb {
+              border: 1px solid var(--van-gray-2);
+              background: var(--bg-color-secondary);
             }
           }
         }
@@ -380,22 +514,7 @@ const calendarFormatter = (day: any) => {
     flex: 1;
     overflow-y: auto;
     background-color: var(--bg-color-secondary);
-    
-    // 覆盖 Vant 日历以全屏填充
-    .custom-calendar {
-      height: auto;
-      min-height: 100%;
-    }
-    
-    /* 自定义日历注入的类名样式 */
-    :deep(.calendar-expense-day .van-calendar__bottom-info) {
-      color: var(--text-color-primary);
-      font-weight: bold;
-    }
-    :deep(.calendar-income-day .van-calendar__bottom-info) {
-      color: var(--brand-income, #ff976a);
-      font-weight: bold;
-    }
+    padding-top: 12px;
   }
 }
 

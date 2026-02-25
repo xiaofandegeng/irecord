@@ -6,6 +6,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useSettingStore } from '@/stores/setting'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { PieChart } from 'echarts/charts'
@@ -30,7 +31,13 @@ const props = defineProps<{
   title?: string
 }>()
 
+const settingStore = useSettingStore()
+
 const option = computed(() => {
+  const isDark = settingStore.isDark
+  const textColor = isDark ? '#f5f5f5' : '#323233'
+  const borderColor = isDark ? '#1c1c1e' : '#fff'
+
   return {
     title: {
       text: props.title || '消费占比',
@@ -38,7 +45,7 @@ const option = computed(() => {
       textStyle: {
         fontSize: 16,
         fontWeight: 'normal',
-        color: '#323233'
+        color: textColor
       }
     },
     tooltip: {
@@ -52,7 +59,7 @@ const option = computed(() => {
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 10,
-          borderColor: '#fff',
+          borderColor: borderColor,
           borderWidth: 2
         },
         label: {

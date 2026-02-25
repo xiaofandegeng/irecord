@@ -16,6 +16,11 @@ export interface RecurringRule {
 
     lastTriggerTime: number // 上次触发事件戳
     isActive: boolean
+
+    // 分期/订阅扩展
+    isInstallment?: boolean // 是否为分期付款或有限期订阅
+    totalInstallments?: number // 总期数
+    paidInstallments?: number // 已付期数
 }
 
 export const useRecurringStore = defineStore('recurring', {
@@ -57,6 +62,8 @@ export const useRecurringStore = defineStore('recurring', {
 
                 // 如果今天已经达到或超过了设定的日期，且本月还没触发过
                 if (currentDay >= rule.cronDayOfMonth && !isSameMonth) {
+                    const currentInstallment = (rule.paidInstallments || 0) + 1
+                    const installmentText = rule.isInstallment && rule.totalInstallments ? `(${currentInstallment}/${rule.totalInstallments})` : ''
 
                     // 记录一下这笔账
                     recordStore.addRecord({
@@ -65,12 +72,20 @@ export const useRecurringStore = defineStore('recurring', {
                         categoryId: rule.categoryId,
                         accountId: rule.accountId,
                         tags: rule.tags,
-                        remark: `[自动记账] ${rule.remark}`,
+                        remark: `[自动记账] ${rule.remark} ${installmentText}`.trim(),
                         recordTime: Date.now() // 使用当下触发时间作为入账时间
                     })
 
                     // 更新触发时间
                     rule.lastTriggerTime = Date.now()
+
+                    if (rule.isInstallment) {
+                        rule.paidInstallments = currentInstallment
+                        if (rule.totalInstallments && rule.paidInstallments >= rule.totalInstallments) {
+                            rule.isActive = false // 分期已完结，自动关闭
+                        }
+                    }
+
                     triggeredCount++
                 }
             })

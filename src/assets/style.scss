@@ -9,6 +9,23 @@
   --brand-expense: #ee0a24;
 }
 
+/* 深色模式全局变量 */
+[data-theme='dark'] {
+  --van-primary-color: #07c160;
+  --bg-color-primary: #1c1c1e;
+  --bg-color-secondary: #000000;
+  --text-color-primary: #f5f5f5;
+  --text-color-secondary: #707070;
+  --brand-income: #07c160;
+  --brand-expense: #ff4d4f;
+  
+  /* Vant components local tweaks */
+  --van-background-2: #1c1c1e;
+  --van-nav-bar-background: var(--bg-color-primary);
+  --van-nav-bar-title-text-color: var(--text-color-primary);
+  --van-nav-bar-icon-color: var(--text-color-primary);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

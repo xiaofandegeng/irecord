@@ -265,7 +265,7 @@ const onConfirmDeposit = () => {
     }
     
     .goal-card {
-      background-color: #fff;
+      background-color: var(--bg-color-primary);
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 16px;
@@ -361,7 +361,7 @@ const onConfirmDeposit = () => {
     left: 0;
     right: 0;
     padding: 16px;
-    background-color: #fff;
+    background-color: var(--bg-color-primary);
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
     box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
   }
@@ -386,7 +386,7 @@ const onConfirmDeposit = () => {
         justify-content: center;
         align-items: center;
         border-radius: 8px;
-        background-color: #f7f8fa;
+        background-color: var(--bg-color-secondary);
         color: var(--text-color-secondary);
         transition: all 0.2s;
         

@@ -176,7 +176,7 @@ const onConfirmAdd = () => {
       }
       
       .list {
-        background-color: #fff;
+        background-color: var(--bg-color-primary);
         border-radius: 12px 12px 0 0;
         overflow: hidden;
       }

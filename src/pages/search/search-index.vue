@@ -6,7 +6,18 @@
       placeholder="输入备注或金额进行搜索"
       background="var(--van-primary-color)"
       @cancel="onCancel"
-    />
+    >
+      <template #action>
+        <div class="header-actions">
+          <span class="filter-btn" @click.stop="showFilter = true">
+            <van-icon name="filter-o" />
+            <span class="badged" v-if="hasFilter"></span>
+            筛选
+          </span>
+          <span @click="onCancel">取消</span>
+        </div>
+      </template>
+    </van-search>
     
     <div class="result-area">
       <template v-if="filteredRecords.length > 0">
@@ -60,14 +71,76 @@
       </div>
       
       <div v-else class="empty-state placeholder">
-        输入关键字搜一搜历史痕迹...
+        输入关键字或使用高级筛选搜一搜历史痕迹...
       </div>
     </div>
+
+    <!-- 高级筛选侧边栏 -->
+    <van-popup v-model:show="showFilter" position="right" :style="{ width: '85%', height: '100%' }">
+      <div class="filter-drawer">
+        <div class="drawer-header">高级筛选</div>
+        <div class="drawer-body">
+           <!-- Type -->
+           <div class="filter-group">
+             <div class="g-title">收支类型</div>
+             <div class="tag-list">
+               <van-tag :plain="filterState.type !== 0" :type="filterState.type === 0 ? 'primary' : 'default'" size="large" @click="filterState.type = 0">全部</van-tag>
+               <van-tag :plain="filterState.type !== 1" :type="filterState.type === 1 ? 'primary' : 'default'" size="large" @click="filterState.type = 1">支出</van-tag>
+               <van-tag :plain="filterState.type !== 2" :type="filterState.type === 2 ? 'primary' : 'default'" size="large" @click="filterState.type = 2">收入</van-tag>
+             </div>
+           </div>
+           
+           <!-- Accounts -->
+           <div class="filter-group">
+             <div class="g-title">挂载资产账户</div>
+             <div class="tag-list">
+                <van-tag 
+                  v-for="acc in accountStore.accounts" 
+                  :key="acc.id"
+                  :plain="!filterState.accounts.includes(acc.id)"
+                  :type="filterState.accounts.includes(acc.id) ? 'primary' : 'default'"
+                  size="large"
+                  @click="toggleAccount(acc.id)"
+                >{{ acc.name }}</van-tag>
+             </div>
+           </div>
+
+           <!-- Amount Range -->
+           <div class="filter-group">
+             <div class="g-title">金额区间 (元)</div>
+             <div class="amount-inputs">
+               <van-field v-model="filterState.minAmount" type="number" placeholder="最低" class="amt-input" />
+               <span class="sep">-</span>
+               <van-field v-model="filterState.maxAmount" type="number" placeholder="最高" class="amt-input" />
+             </div>
+           </div>
+           
+           <!-- Tags filter -->
+           <div class="filter-group" v-if="store.globalTags && store.globalTags.length > 0">
+             <div class="g-title">包含标签 (并集)</div>
+             <div class="tag-list">
+                <van-tag 
+                  v-for="tag in store.globalTags" 
+                  :key="tag"
+                  :plain="!filterState.tags.includes(tag)"
+                  :type="filterState.tags.includes(tag) ? 'primary' : 'default'"
+                  size="large"
+                  @click="toggleTag(tag)"
+                >#{{ tag }}</van-tag>
+             </div>
+           </div>
+        </div>
+        <div class="drawer-footer">
+          <van-button class="btn" plain @click="resetFilter">重置</van-button>
+          <van-button class="btn" type="primary" @click="showFilter = false">查看结果</van-button>
+        </div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRecordStore } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
@@ -78,22 +151,80 @@ const accountStore = useAccountStore()
 
 const keyword = ref('')
 
+const filterState = reactive({
+  type: 0,
+  accounts: [] as string[],
+  minAmount: '',
+  maxAmount: '',
+  tags: [] as string[]
+})
+const showFilter = ref(false)
+
+const toggleAccount = (id: string) => {
+  const idx = filterState.accounts.indexOf(id)
+  if (idx > -1) filterState.accounts.splice(idx, 1)
+  else filterState.accounts.push(id)
+}
+
+const toggleTag = (tag: string) => {
+  const idx = filterState.tags.indexOf(tag)
+  if (idx > -1) filterState.tags.splice(idx, 1)
+  else filterState.tags.push(tag)
+}
+
+const resetFilter = () => {
+  filterState.type = 0
+  filterState.accounts = []
+  filterState.minAmount = ''
+  filterState.maxAmount = ''
+  filterState.tags = []
+}
+
+const hasFilter = computed(() => {
+  return filterState.type !== 0 || filterState.accounts.length > 0 || filterState.minAmount !== '' || filterState.maxAmount !== '' || filterState.tags.length > 0
+})
+
 const filteredRecords = computed(() => {
-  if (!keyword.value) return []
-  const kw = keyword.value.toLowerCase()
-  return store.currentLedgerRecords.filter(r => {
-    const remarkMatch = (r.remark || '').toLowerCase().includes(kw)
-    const amountMatch = String(r.amount).includes(kw)
-    const catMatch = getCategoryName(r.categoryId).toLowerCase().includes(kw)
-    const tagMatch = (r.tags || []).some(t => t.toLowerCase().includes(kw))
-    
-    return remarkMatch || amountMatch || catMatch || tagMatch
-  })
+  if (!keyword.value && !hasFilter.value) return []
+  
+  let list = store.currentLedgerRecords
+
+  if (keyword.value) {
+    const kw = keyword.value.toLowerCase()
+    list = list.filter(r => {
+      const remarkMatch = (r.remark || '').toLowerCase().includes(kw)
+      const amountMatch = String(r.amount).includes(kw)
+      const catMatch = getCategoryName(r.categoryId).toLowerCase().includes(kw)
+      const tagMatch = (r.tags || []).some(t => t.toLowerCase().includes(kw))
+      
+      return remarkMatch || amountMatch || catMatch || tagMatch
+    })
+  }
+  
+  if (filterState.type !== 0) {
+    list = list.filter(r => r.type === filterState.type)
+  }
+  if (filterState.accounts.length > 0) {
+    list = list.filter(r => r.accountId && filterState.accounts.includes(r.accountId))
+  }
+  if (filterState.minAmount) {
+    const min = parseFloat(filterState.minAmount)
+    if (!isNaN(min)) list = list.filter(r => r.amount >= min)
+  }
+  if (filterState.maxAmount) {
+    const max = parseFloat(filterState.maxAmount)
+    if (!isNaN(max)) list = list.filter(r => r.amount <= max)
+  }
+  if (filterState.tags.length > 0) {
+    list = list.filter(r => r.tags && filterState.tags.some(t => r.tags!.includes(t)))
+  }
+
+  return list.sort((a,b) => b.recordTime - a.recordTime)
 })
 
 const totalSum = computed(() => {
   return filteredRecords.value.reduce((sum, r) => {
-    return sum + (r.type === 1 ? -r.amount : r.amount)
+    return sum + ((r.type === 1 ? -r.amount : r.amount) * (r.exchangeRate || 1))
   }, 0)
 })
 
@@ -146,7 +277,7 @@ const onCancel = () => {
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background-color: #f7f8fa;
+      background-color: var(--bg-color-secondary);
       color: var(--van-primary-color);
       display: flex;
       align-items: center;
@@ -208,6 +339,100 @@ const onCancel = () => {
         color: var(--text-color-secondary);
         font-size: 14px;
         opacity: 0.6;
+      }
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    
+    .filter-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      position: relative;
+      
+      .badged {
+        position: absolute;
+        top: 0;
+        right: 28px;
+        width: 6px;
+        height: 6px;
+        background-color: #ee0a24;
+        border-radius: 50%;
+      }
+    }
+  }
+  
+  .filter-drawer {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--bg-color-secondary);
+    
+    .drawer-header {
+      padding: 16px;
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      background-color: var(--van-primary-color);
+      color: #fff;
+    }
+    
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      
+      .filter-group {
+        margin-bottom: 24px;
+        
+        .g-title {
+          font-size: 14px;
+          color: var(--text-color-secondary);
+          margin-bottom: 12px;
+          font-weight: 500;
+        }
+        
+        .tag-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        
+        .amount-inputs {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          
+          .amt-input {
+            flex: 1;
+            background-color: rgba(0,0,0,0.02);
+            border-radius: 4px;
+            padding: 4px 8px;
+          }
+          .sep {
+            color: var(--text-color-secondary);
+          }
+        }
+      }
+    }
+    
+    .drawer-footer {
+      display: flex;
+      padding: 12px 16px;
+      gap: 12px;
+      border-top: 1px solid rgba(0,0,0,0.05);
+      background-color: var(--bg-color-primary);
+      
+      .btn {
+        flex: 1;
       }
     }
   }

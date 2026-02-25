@@ -5,6 +5,7 @@ export interface Ledger {
     name: string
     icon: string
     isDefault?: boolean // 默认账本不能删
+    baseCurrency?: string // 基准货币 (如 CNY, USD)
     createdAt: number
 }
 
@@ -15,6 +16,7 @@ const defaultLedgers: Ledger[] = [
         name: '日常账本',
         icon: 'shop-o',
         isDefault: true,
+        baseCurrency: 'CNY',
         createdAt: Date.now()
     }
 ]
@@ -33,6 +35,7 @@ export const useLedgerStore = defineStore('ledger', {
                 id: `ledger_${Date.now()}`,
                 name: ledgerName,
                 icon: iconStr,
+                baseCurrency: 'CNY',
                 createdAt: Date.now()
             }
             this.ledgers.push(newLedger)
@@ -53,11 +56,12 @@ export const useLedgerStore = defineStore('ledger', {
                 }
             }
         },
-        updateLedger(id: string, name: string, icon: string) {
+        updateLedger(id: string, name: string, icon: string, baseCurrency?: string) {
             const l = this.ledgers.find(l => l.id === id)
             if (l) {
                 l.name = name
                 if (icon) l.icon = icon
+                if (baseCurrency) l.baseCurrency = baseCurrency
             }
         }
     },

@@ -125,7 +125,7 @@ const onFileChange = async (e: Event) => {
     // 智能挂载分类
     const records = rawRecords.map((r: Partial<RecordItem>) => ({
       ...r,
-      categoryId: matchCategory(r.remark || '', r.type || 1)
+      categoryId: r.categoryId || matchCategory(r.remark || '', r.type || 1)
     }))
     if (records.length === 0) {
       showToast('未能识别到有效的账单记录')
@@ -164,12 +164,15 @@ const confirmImport = () => {
     })
 
     if (!isDuplicate) {
+      // 过滤掉原生的 id, 避免冲突；保留其他全量字段
+      const { id, createTime, ...rest } = r
       store.addRecord({
+        ...rest,
         type: rType,
         amount: rAmount,
         categoryId: r.categoryId || (rType === 1 ? defaultExpenseCatId : defaultIncomeCatId),
         recordTime: rTime,
-        remark: (r.remark || '') + ' [导入]',
+        remark: r.remark && r.remark.includes('导入') ? r.remark : (r.remark || '') + ' [导入]',
       })
       successCount++
     } else {
@@ -202,7 +205,7 @@ const confirmImport = () => {
     padding: 16px;
     
     .intro {
-      background-color: #fff;
+      background-color: var(--bg-color-primary);
       padding: 16px;
       border-radius: 12px;
       margin-bottom: 20px;
@@ -234,7 +237,7 @@ const confirmImport = () => {
         justify-content: center;
         width: 140px;
         height: 140px;
-        background-color: #fff;
+        background-color: var(--bg-color-primary);
         border: 2px dashed var(--van-primary-color);
         border-radius: 16px;
         color: var(--van-primary-color);
@@ -257,7 +260,7 @@ const confirmImport = () => {
     }
 
     .preview-section {
-      background-color: #fff;
+      background-color: var(--bg-color-primary);
       border-radius: 12px;
       padding: 16px;
       

@@ -14,9 +14,15 @@
     <div class="asset-card">
       <div class="asset-row">
         <div class="asset-item">
-          <span class="label">净资产</span>
-          <span class="value">{{ accountStore.privacyMode ? '****' : accountStore.totalNetAsset.toFixed(2) }}</span>
+          <span class="label">流动净资产</span>
+          <span class="value">{{ accountStore.privacyMode ? '****' : (accountStore.totalNetAsset - investmentAsset).toFixed(2) }}</span>
         </div>
+        <div class="asset-item" @click="router.push('/account-manage')">
+          <span class="label">投资理财 <van-icon name="arrow" style="font-size: 10px;" /></span>
+          <span class="value" style="color: #8a2be2;">{{ accountStore.privacyMode ? '****' : investmentAsset.toFixed(2) }}</span>
+        </div>
+      </div>
+      <div class="asset-row" style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.2);">
         <div class="asset-item" @click="router.push('/debt-manage?type=1')">
           <span class="label">待收 (借出)</span>
           <span class="value" style="color: #07c160;">{{ accountStore.privacyMode ? '****' : debtStore.getLedgerTotals().lent.toFixed(2) }}</span>
@@ -89,6 +95,7 @@
       
       <van-cell-group inset>
         <van-cell title="WebDAV 云端数据同步" is-link to="/sync-manage" />
+        <van-cell title="年度数据冷温结转归档" is-link @click="showArchive = true" />
         <van-cell title="隐私模式 (隐藏金额)" center>
           <template #right-icon>
             <van-switch v-model="accountStore.privacyMode" size="24" />
@@ -96,9 +103,9 @@
         </van-cell>
         <van-cell title="导入账单数据 (CSV)" is-link to="/import" />
         <van-cell title="导出数据 (CSV)" is-link @click="exportData" />
-        <van-cell title="深色模式" center>
+        <van-cell title="深色模式 (重开生效)" center>
           <template #right-icon>
-            <van-switch v-model="isDarkMode" size="24" @change="toggleTheme" />
+            <van-switch v-model="isDarkMode" size="24" />
           </template>
         </van-cell>
       </van-cell-group>
@@ -115,6 +122,14 @@
     <van-dialog v-model:show="showBudget" title="设置月度预算" show-cancel-button @confirm="onConfirmBudget">
       <van-field v-model="tempBudget" type="number" label="预算金额" placeholder="请输入每月预算" />
     </van-dialog>
+
+    <!-- 归档设置弹窗 -->
+    <van-dialog v-model:show="showArchive" title="年度历史数据归档" show-cancel-button @confirm="onConfirmArchive">
+      <div style="padding: 16px; font-size: 14px; color: #999; line-height: 1.5;">
+        将指定年度及之前的账单移入冷存储层释放极速性能。此操作会在次年初自动生成一笔【期初结转】保证总资产不变。
+      </div>
+      <van-field v-model="archiveYear" type="digit" label="结转至年份" placeholder="如 2024" />
+    </van-dialog>
   </div>
 </template>
 
@@ -127,6 +142,7 @@ import { useAccountStore } from '@/stores/account'
 import { useGoalStore } from '@/stores/goal'
 import { useDebtStore } from '@/stores/debt'
 import { useUserStore } from '@/stores/user'
+import { useSettingStore } from '@/stores/setting'
 
 const router = useRouter()
 const store = useRecordStore()
@@ -138,11 +154,33 @@ const userStore = useUserStore()
 const showBudget = ref(false)
 const tempBudget = ref(store.budget ? String(store.budget) : '')
 
+const showArchive = ref(false)
+const archiveYear = ref(String(new Date().getFullYear() - 1))
+
+const onConfirmArchive = async () => {
+  const y = parseInt(archiveYear.value)
+  if (!y || isNaN(y)) {
+    showToast('请输入正确的年份缩写如 2024')
+    return
+  }
+  const count = await store.archiveYear(y)
+  if (count > 0) {
+    showToast(`成功归档冻结 ${y} 年的 ${count} 笔流水`)
+  } else {
+    showToast('该年度暂无可归档数据')
+  }
+}
+
 const onConfirmBudget = () => {
   const val = parseFloat(tempBudget.value) || 0
   store.setBudget(val)
   showToast(val > 0 ? '预算设置成功' : '已取消预算')
 }
+
+// 投资理财总计
+const investmentAsset = computed(() => {
+  return accountStore.accounts.filter(a => a.type === 4).reduce((sum, a) => sum + a.balance, 0)
+})
 
 // 计算本月各个分类是否超支
 const overBudgetCategories = computed(() => {
@@ -153,6 +191,10 @@ const overBudgetCategories = computed(() => {
   // 仅计算本月的支出
   const monthRecords = store.currentLedgerRecords.filter(r => {
     if (r.type !== 1) return false
+    if (r.accountId) {
+      const acc = accountStore.accounts.find(a => a.id === r.accountId)
+      if (acc && acc.type === 4) return false
+    }
     const d = new Date(r.recordTime)
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear
   })
@@ -161,7 +203,7 @@ const overBudgetCategories = computed(() => {
   const spentMap: Record<string, number> = {}
   monthRecords.forEach(r => {
     if (!spentMap[r.categoryId]) spentMap[r.categoryId] = 0
-    spentMap[r.categoryId] += r.amount
+    spentMap[r.categoryId] += (r.amount * (r.exchangeRate || 1))
   })
 
   const overList: any[] = []
@@ -192,7 +234,14 @@ const totalDays = computed(() => {
   return diffDays
 })
 
-const isDarkMode = ref(false)
+const settingStore = useSettingStore()
+const isDarkMode = computed({
+  get: () => settingStore.theme === 'dark',
+  set: (val: boolean) => {
+    settingStore.setTheme(val ? 'dark' : 'light')
+    showToast(val ? '已开启深色模式' : '已关闭深色模式')
+  }
+})
 
 const exportData = () => {
   if (store.currentLedgerRecords.length === 0) {
@@ -200,17 +249,26 @@ const exportData = () => {
     return
   }
   
-  // 简易 CSV 导出逻辑
+  // 全量 CSV 导出逻辑
+  const headers = [
+    'id', 'type', 'amount', 'categoryId', 'accountId', 
+    'recordTime', 'createTime', 'remark', 'tags', 'ledgerId', 
+    'goalId', 'reimbursable', 'reimbursableId', 'creatorId', 
+    'currency', 'exchangeRate', 'refundForId', 'isArchived'
+  ]
+  
   let csvContent = "data:text/csv;charset=utf-8,"
-  csvContent += "时间,类型,金额,分类,备注\n"
+  csvContent += headers.join(",") + "\n"
   
   store.currentLedgerRecords.forEach(r => {
-    const date = new Date(r.recordTime).toLocaleString()
-    const type = r.type === 1 ? '支出' : '收入'
-    const cat = store.categories.find(c => c.id === r.categoryId)?.name || '未知'
-    const remark = r.remark || ''
-    const row = `"${date}","${type}",${r.amount},"${cat}","${remark}"`
-    csvContent += row + "\n"
+    const row = headers.map(key => {
+      let val = (r as any)[key]
+      if (val === undefined || val === null) return ''
+      if (Array.isArray(val)) return `"${val.join('|')}"` // tags 数组用 | 分隔
+      if (typeof val === 'string') return `"${val.replace(/"/g, '""')}"`
+      return val
+    })
+    csvContent += row.join(",") + "\n"
   })
   
   const encodedUri = encodeURI(csvContent)
@@ -220,19 +278,6 @@ const exportData = () => {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
-}
-
-const toggleTheme = (val: boolean) => {
-  if (val) {
-    document.documentElement.style.setProperty('--bg-color-primary', '#1c1c1e')
-    document.documentElement.style.setProperty('--bg-color-secondary', '#000000')
-    document.documentElement.style.setProperty('--text-color-primary', '#ffffff')
-    showToast('已开启深色模式')
-  } else {
-    document.documentElement.style.setProperty('--bg-color-primary', '#ffffff')
-    document.documentElement.style.setProperty('--bg-color-secondary', '#f7f8fa')
-    document.documentElement.style.setProperty('--text-color-primary', '#323233')
-  }
 }
 
 const clearAll = () => {
@@ -350,7 +395,7 @@ const handleLogout = () => {
 
   .goals-section {
     margin: 0 16px 16px;
-    background-color: #fff;
+    background-color: var(--bg-color-primary);
     border-radius: 12px;
     padding: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
@@ -396,7 +441,7 @@ const handleLogout = () => {
   }
 
   .budget-alert-card {
-    background-color: #fff;
+    background-color: var(--bg-color-primary);
     margin: 0 16px 16px;
     border-radius: 12px;
     padding: 16px;

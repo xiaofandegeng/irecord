@@ -24,9 +24,14 @@ export interface RecordItem {
     tags?: string[] // 新增：为单一流水追加多维度的标签阵列
     ledgerId?: string // 新增：支持多账本隔离
     goalId?: string // 新增：支持计入存钱目标
+    attachments?: string[] // 新增：支持多媒体凭证图片 Base64
     reimbursable?: boolean // 新增：是否可报销
     reimbursableId?: string // 新增：如果是一笔报销收款入账，关联的原始支出的ID
     creatorId?: string // 新增：记录录入人的用户ID（面向家庭共享场景）
+    currency?: string // 新增：多币种记账时对应的货币符号（如 JPY, USD）
+    exchangeRate?: number // 新增：多币种记账时的汇率（转换为基准货币的比例）
+    refundForId?: string // 新增：退款关联的原支出记录ID，用于抵消报表总额
+    isArchived?: boolean // 新增：冷温分层，标明是否被年度结转归档
 }
 
 // 默认内置分类
@@ -44,6 +49,7 @@ export const useRecordStore = defineStore('record', {
     state: () => ({
         categories: [...defaultCategories] as Category[],
         records: [] as RecordItem[],
+        archivedRecords: [] as RecordItem[], // 冷数据集合
         budget: 0, // 月度预算
         globalTags: [] as string[] // 全局已被创建出来的所有标签库
     }),
@@ -57,7 +63,95 @@ export const useRecordStore = defineStore('record', {
             return state.records.filter(r => (r.ledgerId || 'ledger_default') === currentLedgerId)
         },
         expenseCategories: (state) => state.categories.filter(c => c.type === 1).sort((a, b) => a.sort - b.sort),
-        incomeCategories: (state) => state.categories.filter(c => c.type === 2).sort((a, b) => a.sort - b.sort)
+        incomeCategories: (state) => state.categories.filter(c => c.type === 2).sort((a, b) => a.sort - b.sort),
+        financialInsight(state): { score: number, messages: string[] } {
+            const records: RecordItem[] = (this as any).currentLedgerRecords
+            let score = 80
+            const messages: string[] = []
+
+            const now = new Date()
+            const currentMonth = now.getMonth()
+            const currentYear = now.getFullYear()
+
+            const lastMonthDate = new Date(currentYear, currentMonth - 1, 1)
+            const lastMonth = lastMonthDate.getMonth()
+            const lastMonthYear = lastMonthDate.getFullYear()
+
+            let currentMonthExpense = 0
+            let lastMonthExpense = 0
+            const categoryExpenses: Record<string, number> = {}
+
+            records.forEach(r => {
+                if (r.type === 1) { // 支出 (含退款为负值)
+                    // 简单规避投资账户（如果是 a5 则忽略，为了更精准。这里先按全局标准）
+                    const d = new Date(r.recordTime)
+                    const m = d.getMonth()
+                    const y = d.getFullYear()
+                    const actualAmount = r.amount * (r.exchangeRate || 1)
+
+                    if (y === currentYear && m === currentMonth) {
+                        currentMonthExpense += actualAmount
+                        categoryExpenses[r.categoryId] = (categoryExpenses[r.categoryId] || 0) + actualAmount
+                    } else if (y === lastMonthYear && m === lastMonth) {
+                        lastMonthExpense += actualAmount
+                    }
+                }
+            })
+
+            // 预算压力
+            if (state.budget > 0) {
+                const ratio = currentMonthExpense / state.budget
+                if (ratio > 0.9) {
+                    score -= 20
+                    messages.push('本月全局预算已告急，请注意控制开销！')
+                } else if (ratio > 0.7) {
+                    score -= 10
+                    messages.push('本月预算已消耗大半，需合理规划后续支出。')
+                } else {
+                    score += 10
+                    messages.push('本月预算控制得非常好，继续保持。')
+                }
+            }
+
+            // 环比消费
+            if (lastMonthExpense > 0) {
+                if (currentMonthExpense > lastMonthExpense * 1.2) {
+                    score -= 15
+                    messages.push(`本月支出较上月同期显著增长了 ${Math.round((currentMonthExpense / lastMonthExpense - 1) * 100)}%。`)
+                } else if (currentMonthExpense < lastMonthExpense * 0.8) {
+                    score += 10
+                    messages.push(`本月支出较上月有所下降，节流效果明显。`)
+                }
+            }
+
+            // 分类子预算压力
+            state.categories.forEach(c => {
+                if (c.budgetLimit && c.budgetLimit > 0) {
+                    const spent = categoryExpenses[c.id] || 0
+                    if (spent > c.budgetLimit) {
+                        score -= 5
+                        messages.push(`【${c.name}】超出了预设子预算限额！`)
+                    }
+                }
+            })
+
+            // 数据极少时
+            if (currentMonthExpense === 0 && lastMonthExpense === 0) {
+                score = 100
+                messages.push('欢迎使用！多记录几笔账单以获取更精准的洞察。')
+            }
+
+            if (score > 100) score = 100
+            if (score < 0) score = 0
+
+            // 兜底语句
+            if (messages.length === 0) {
+                if (score >= 80) messages.push('目前财务状况健康，各项指标平稳。')
+                else messages.push('财务状况一般，请关注近期大额支出。')
+            }
+
+            return { score, messages }
+        }
     },
     actions: {
         addTag(tag: string) {
@@ -181,6 +275,45 @@ export const useRecordStore = defineStore('record', {
                     module.useAccountStore().updateBalance(incomeAccountId, incomeRecord.amount)
                 })
             }
+        },
+        async archiveYear(year: number) {
+            const nextYearStart = new Date(year + 1, 0, 1).getTime()
+
+            const toArchive = this.records.filter(r => {
+                const y = new Date(r.recordTime).getFullYear()
+                return y <= year
+            })
+
+            if (toArchive.length === 0) return 0
+
+            let netSum = 0
+            toArchive.forEach(r => {
+                r.isArchived = true
+                const actual = r.amount * (r.exchangeRate || 1)
+                if (r.type === 2) netSum += actual
+                else if (r.type === 1) netSum -= actual
+            })
+
+            this.archivedRecords.push(...toArchive)
+            this.records = this.records.filter(r => !toArchive.includes(r))
+
+            // 插入一条汇总的“期初结转”记录到次年1月1日，代表往年结余 (不触发真实Account余额变动)
+            const rolloverRecord: RecordItem = {
+                id: crypto.randomUUID(),
+                type: netSum >= 0 ? 2 : 1,
+                amount: Math.abs(netSum),
+                categoryId: netSum >= 0 ? 'c6' : 'c4', // Fallback
+                recordTime: nextYearStart,
+                createTime: Date.now(),
+                remark: `${year}及更早年度期初结转`,
+                isArchived: false,
+                ledgerId: 'ledger_default'
+            }
+
+            this.records.push(rolloverRecord)
+            this.records.sort((a, b) => b.recordTime - a.recordTime)
+
+            return toArchive.length
         }
     },
     persist: true

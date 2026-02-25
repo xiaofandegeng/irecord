@@ -24,6 +24,9 @@
             <template #label>
               <div class="meta-row">
                 <van-tag type="primary" plain>每月 {{ rule.cronDayOfMonth }} 号</van-tag>
+                <van-tag v-if="rule.isInstallment && rule.totalInstallments" type="warning" plain style="margin-left: 8px;">
+                  进度: {{ rule.paidInstallments || 0 }}/{{ rule.totalInstallments }}
+                </van-tag>
                 <span class="amount" :class="{'is-income': rule.type === 2}">
                   ¥ {{ rule.amount.toFixed(2) }}
                 </span>
@@ -83,6 +86,27 @@
 
         <van-field v-model="newRuleRemark" label="自动备注" placeholder="例如：房租" />
         
+        <van-cell title="作为分期记录 (有限期数)" center style="padding: 10px 16px;">
+          <template #right-icon>
+            <van-switch v-model="newRuleIsInstallment" size="20" />
+          </template>
+        </van-cell>
+        
+        <van-field
+          v-if="newRuleIsInstallment"
+          v-model="newRuleTotalInstallments"
+          type="digit"
+          label="分期总数"
+          placeholder="例如：24"
+        />
+        <van-field
+          v-if="newRuleIsInstallment"
+          v-model="newRulePaidInstallments"
+          type="digit"
+          label="已付期数"
+          placeholder="默认：0"
+        />
+
         <div class="submit-wrap">
           <van-button type="primary" block round @click="onConfirmAdd">保存自动规则</van-button>
         </div>
@@ -157,6 +181,10 @@ const newRuleType = ref<1 | 2>(1)
 const newRuleAmount = ref('')
 const newRuleRemark = ref('')
 
+const newRuleIsInstallment = ref(false)
+const newRuleTotalInstallments = ref('')
+const newRulePaidInstallments = ref('')
+
 const showCategoryPicker = ref(false)
 const newRuleCategoryId = ref('')
 const newRuleCategoryName = ref('')
@@ -197,7 +225,10 @@ const onConfirmAdd = () => {
     cronDayOfMonth: newRuleDate.value,
     remark: newRuleRemark.value,
     lastTriggerTime: 0, // 设为 0 以便下次启动必定检测一次（并记录当下的触发时间）
-    isActive: true
+    isActive: true,
+    isInstallment: newRuleIsInstallment.value,
+    totalInstallments: newRuleIsInstallment.value ? parseInt(newRuleTotalInstallments.value) : undefined,
+    paidInstallments: newRuleIsInstallment.value ? (parseInt(newRulePaidInstallments.value) || 0) : undefined
   })
 
   showToast('添加成功')
@@ -209,6 +240,9 @@ const onConfirmAdd = () => {
   newRuleCategoryId.value = ''
   newRuleCategoryName.value = ''
   newRuleDateDisplay.value = ''
+  newRuleIsInstallment.value = false
+  newRuleTotalInstallments.value = ''
+  newRulePaidInstallments.value = ''
 }
 </script>
 
@@ -237,7 +271,7 @@ const onConfirmAdd = () => {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background-color: #f7f8fa;
+          background-color: var(--bg-color-secondary);
           color: var(--van-primary-color);
           display: flex;
           align-items: center;
@@ -282,7 +316,7 @@ const onConfirmAdd = () => {
 
   .bottom-action {
     padding: 16px;
-    background-color: #fff;
+    background-color: var(--bg-color-primary);
     box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
   }
   
@@ -320,7 +354,7 @@ const onConfirmAdd = () => {
         width: 44px;
         height: 44px;
         border-radius: 50%;
-        background-color: #f7f8fa;
+        background-color: var(--bg-color-secondary);
         color: var(--text-color-secondary);
         display: flex;
         align-items: center;

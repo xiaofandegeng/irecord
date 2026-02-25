@@ -9,7 +9,11 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@capacitor/cli": "^8.1.0",
+        "@capacitor/core": "^8.1.0",
+        "@capacitor/ios": "^8.1.0",
         "echarts": "^6.0.0",
+        "html2canvas": "^1.4.1",
         "pinia": "^2.1.7",
         "pinia-plugin-persistedstate": "^3.2.1",
         "vant": "^4.8.2",

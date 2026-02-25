@@ -2,9 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { showNotify } from 'vant'
 import { useRecurringStore } from '@/stores/recurring'
+import { useSettingStore } from '@/stores/setting'
+import OmniCommandPanel from '@/components/OmniCommandPanel.vue'
 
 const activeTab = ref(0)
 const recurringStore = useRecurringStore()
+useSettingStore() // initialize theme
 
 onMounted(() => {
   // 检查是否有到达日期的周期账单需要自动入账
@@ -33,6 +36,9 @@ onMounted(() => {
       <van-tabbar-item replace to="/report" icon="chart-trending-o">报表</van-tabbar-item>
       <van-tabbar-item replace to="/mine" icon="user-o">我的</van-tabbar-item>
     </van-tabbar>
+
+    <!-- 全局悬浮的自然语言速记面板 -->
+    <OmniCommandPanel />
   </div>
 </template>
 

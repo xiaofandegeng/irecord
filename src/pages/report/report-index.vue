@@ -5,6 +5,7 @@
         <span class="month-selector" @click="showPicker = true">
           {{ displayDateText }} <van-icon name="arrow-down" />
         </span>
+        <van-button size="small" type="primary" plain icon="photo-o" @click="generatePoster">生成长图</van-button>
       </div>
       <van-tabs v-model:active="recordType" type="card" color="var(--van-primary-color)">
         <van-tab title="支出" :name="1"></van-tab>
@@ -12,7 +13,11 @@
       </van-tabs>
     </div>
 
-    <!-- Tags Filter -->
+    <!-- 海报截取区域 -->
+    <div ref="posterRef" class="poster-wrapper">
+      <InsightCard />
+    
+      <!-- Tags Filter -->
     <div class="tag-filter-bar" v-if="store.globalTags && store.globalTags.length > 0">
       <span class="label">按标签筛选:</span>
       <div class="tags-scroll">
@@ -70,6 +75,7 @@
     <div v-else class="empty-state">
       <van-empty image="error" description="本月暂无数据" />
     </div>
+    </div> <!-- end poster-wrapper -->
 
     <!-- 日期选择器 -->
     <van-popup v-model:show="showPicker" position="bottom">
@@ -94,13 +100,20 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import InsightCard from '@/components/InsightCard.vue'
+import { showImagePreview, showToast, showLoadingToast } from 'vant'
+import html2canvas from 'html2canvas'
 import { useRecordStore, type RecordItem } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
 import ChartPie from '@/components/ChartPie.vue'
 import ChartLine from '@/components/ChartLine.vue'
+import { useSettingStore } from '@/stores/setting'
+
+const posterRef = ref<HTMLElement | null>(null)
 
 const store = useRecordStore()
 const accountStore = useAccountStore()
+const settingStore = useSettingStore()
 
 const recordType = ref<1 | 2>(1)
 const dateType = ref<'month' | 'year'>('month')
@@ -162,6 +175,12 @@ const filteredRecords = computed(() => {
     // 基础过滤
     if (r.type !== recordType.value) return false
     
+    // 排除投资理财账户的流水记录
+    if (r.accountId) {
+      const acc = accountStore.accounts.find(a => a.id === r.accountId)
+      if (acc && acc.type === 4) return false
+    }
+    
     // 标签过滤
     if (activeTags.value.length > 0) {
       if (!r.tags || r.tags.length === 0) return false
@@ -182,7 +201,7 @@ const filteredRecords = computed(() => {
 })
 
 const totalAmount = computed(() => {
-  return filteredRecords.value.reduce((sum, r) => sum + r.amount, 0)
+  return filteredRecords.value.reduce((sum, r) => sum + (r.amount * (r.exchangeRate || 1)), 0)
 })
 
 // 聚合数据供图表使用
@@ -190,7 +209,7 @@ const chartData = computed(() => {
   const map: Record<string, number> = {}
   filteredRecords.value.forEach(r => {
     if (!map[r.categoryId]) map[r.categoryId] = 0
-    map[r.categoryId] += r.amount
+    map[r.categoryId] += (r.amount * (r.exchangeRate || 1))
   })
   
   return Object.keys(map).map(id => ({
@@ -222,12 +241,13 @@ const lineSeriesData = computed(() => {
   
   filteredRecords.value.forEach(r => {
     const d = new Date(r.recordTime)
+    const convertedAmount = r.amount * (r.exchangeRate || 1)
     if (dateType.value === 'month') {
       const dayIndex = d.getDate() - 1 // 1号对应索引0
-      data[dayIndex] += r.amount
+      data[dayIndex] += convertedAmount
     } else {
       const monthIndex = d.getMonth() // 0-11
-      data[monthIndex] += r.amount
+      data[monthIndex] += convertedAmount
     }
   })
   
@@ -237,6 +257,43 @@ const lineSeriesData = computed(() => {
 const maxAmount = computed(() => {
   return rankedData.value.length > 0 ? rankedData.value[0].value : 1
 })
+
+const generatePoster = async () => {
+  if (!posterRef.value) return
+  if (chartData.value.length === 0) {
+    showToast('暂无数据，无需生成长图')
+    return
+  }
+  
+  const toast = showLoadingToast({
+    message: '正在生成专属海报...',
+    forbidClick: true,
+  })
+
+  try {
+    const canvas = await html2canvas(posterRef.value, {
+      scale: 2, // 提高清晰度
+      useCORS: true,
+      backgroundColor: settingStore.isDark ? '#000000' : '#f7f8fa' // 确保背景色填充
+    })
+    
+    const imgUrl = canvas.toDataURL('image/png')
+    
+    // 打开预览模式供用户长按保存
+    showImagePreview({
+      images: [imgUrl],
+      closeable: true,
+      showIndex: false
+    })
+    
+    toast.close()
+    showToast('长按图片可保存分享')
+  } catch (err) {
+    toast.close()
+    showToast('生成海报失败')
+    console.error(err)
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -260,6 +317,11 @@ const maxAmount = computed(() => {
       align-items: center;
       gap: 4px;
     }
+  }
+    
+  .poster-wrapper {
+    background-color: var(--bg-color-secondary);
+    padding-bottom: 24px; // 避免切图时底部太紧凑
   }
 
   .tag-filter-bar {
@@ -292,7 +354,7 @@ const maxAmount = computed(() => {
   }
   
   .summary-card {
-    background-color: #fff;
+    background-color: var(--bg-color-primary);
     border-radius: 12px;
     padding: 20px;
     text-align: center;
@@ -313,7 +375,7 @@ const maxAmount = computed(() => {
   }
   
   .chart-section {
-    background-color: #fff;
+    background-color: var(--bg-color-primary);
     border-radius: 12px;
     padding: 16px 0;
     margin-bottom: 16px;
@@ -329,7 +391,7 @@ const maxAmount = computed(() => {
   }
   
   .rank-list {
-    background-color: #fff;
+    background-color: var(--bg-color-primary);
     border-radius: 12px;
     padding: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
@@ -353,7 +415,7 @@ const maxAmount = computed(() => {
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background-color: #f7f8fa;
+        background-color: var(--bg-color-secondary);
         color: var(--van-primary-color);
         display: flex;
         align-items: center;

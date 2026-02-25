@@ -218,7 +218,7 @@ const onConfirmEdit = () => {
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background-color: #f7f8fa;
+      background-color: var(--bg-color-secondary);
       color: var(--van-primary-color);
       display: flex;
       align-items: center;
@@ -249,7 +249,7 @@ const onConfirmEdit = () => {
   .add-btn-wrap {
     padding: 20px 16px;
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
-    background-color: #fff;
+    background-color: var(--bg-color-primary);
     box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
     
     .add-btn {
@@ -268,7 +268,7 @@ const onConfirmEdit = () => {
       justify-content: space-between;
       align-items: center;
       padding: 16px;
-      background-color: #fff;
+      background-color: var(--bg-color-primary);
       font-size: 16px;
       
       .cancel { color: var(--text-color-secondary); }
@@ -295,7 +295,7 @@ const onConfirmEdit = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background-color: #fff;
+          background-color: var(--bg-color-primary);
           border-radius: 8px;
           color: var(--text-color-primary);
           transition: all 0.2s;
