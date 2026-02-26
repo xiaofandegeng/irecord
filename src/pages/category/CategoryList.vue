@@ -113,6 +113,31 @@ const deleteCategory = (cat: any) => {
   padding: 16px 0 80px;
 
   .list-group {
+    margin: 0 16px;
+    border-radius: 16px;
+    overflow: hidden;
+    background-color: transparent;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+    
+    [data-theme='dark'] & {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    :deep(.van-cell) {
+      background-color: var(--bg-color-primary);
+      padding: 14px 16px;
+      transition: background-color 0.2s;
+      
+      &::after {
+        left: 64px;
+        right: 16px;
+      }
+      
+      &:active {
+        background-color: var(--van-active-color);
+      }
+    }
+
     .icon-wrap {
       width: 32px;
       height: 32px;

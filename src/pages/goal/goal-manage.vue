@@ -2,16 +2,17 @@
   <div class="goal-manage-container">
     <van-nav-bar
       title="心愿单与存钱计划"
-      left-text="返回"
       left-arrow
       @click-left="onClickLeft"
+      class="transparent-nav"
+      :border="false"
     />
     
     <div class="goal-list">
       <div class="summary-card" v-if="store.goals.length > 0">
         <div class="label">总目标存钱</div>
-        <div class="value">¥ {{ store.totalTarget.toFixed(2) }}</div>
-        <div class="sub-label">已存入 ¥ {{ store.totalCurrent.toFixed(2) }}</div>
+        <div class="value din-font">¥ {{ store.totalTarget.toFixed(2) }}</div>
+        <div class="sub-label">已存入 ¥ <span class="din-font">{{ store.totalCurrent.toFixed(2) }}</span></div>
       </div>
 
       <van-empty v-if="store.goals.length === 0" image="search" description="暂无心愿单，快去定个小目标吧！" />
@@ -29,10 +30,10 @@
         
         <div class="progress-info">
           <div class="amounts">
-            <span class="current">¥ {{ goal.currentAmount.toFixed(2) }}</span>
-            <span class="target"> / {{ goal.targetAmount.toFixed(2) }}</span>
+            <span class="current din-font">¥ {{ goal.currentAmount.toFixed(2) }}</span>
+            <span class="target din-font"> / {{ goal.targetAmount.toFixed(2) }}</span>
           </div>
-          <div class="percentage">{{ Math.min(100, (goal.currentAmount / goal.targetAmount) * 100).toFixed(1) }}%</div>
+          <div class="percentage din-font">{{ Math.min(100, (goal.currentAmount / goal.targetAmount) * 100).toFixed(1) }}%</div>
         </div>
         
         <van-progress 
@@ -48,7 +49,7 @@
     </div>
     
     <div class="bottom-action">
-      <van-button block type="primary" class="add-btn" @click="openAdd">新建存钱目标</van-button>
+      <van-button block round type="primary" class="add-btn" @click="openAdd">新建存钱目标</van-button>
     </div>
 
     <!-- 添加/编辑 心愿单 -->
@@ -237,24 +238,33 @@ const onConfirmDeposit = () => {
   flex-direction: column;
   padding-bottom: 80px;
   
+  :deep(.transparent-nav) {
+    background-color: transparent;
+    .van-nav-bar__title, .van-icon {
+      color: var(--text-color-primary);
+    }
+  }
+  
   .goal-list {
     padding: 16px;
     
     .summary-card {
       background: linear-gradient(135deg, var(--van-primary-color), #23d47a);
       color: #fff;
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: 16px;
+      padding: 24px 20px;
       margin-bottom: 20px;
       text-align: center;
+      box-shadow: 0 4px 12px rgba(7, 193, 96, 0.2);
       
       .label {
         font-size: 14px;
         opacity: 0.9;
         margin-bottom: 8px;
+        font-weight: 500;
       }
       .value {
-        font-size: 28px;
+        font-size: 32px;
         font-weight: bold;
         margin-bottom: 8px;
       }
@@ -266,10 +276,14 @@ const onConfirmDeposit = () => {
     
     .goal-card {
       background-color: var(--bg-color-primary);
-      border-radius: 12px;
-      padding: 16px;
+      border-radius: 16px;
+      padding: 20px;
       margin-bottom: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+      
+      [data-theme='dark'] & {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
       
       .header {
         display: flex;
@@ -360,10 +374,9 @@ const onConfirmDeposit = () => {
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 16px;
-    background-color: var(--bg-color-primary);
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    padding: 24px 16px;
+    background-color: transparent;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
   
   .icon-picker {

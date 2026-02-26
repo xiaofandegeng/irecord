@@ -2,19 +2,20 @@
   <div class="debt-manage-container">
     <van-nav-bar
       title="借入与借出账单"
-      left-text="返回"
       left-arrow
       @click-left="onClickLeft"
+      class="transparent-nav"
+      :border="false"
     />
 
-    <van-tabs v-model:active="activeTab" sticky color="var(--van-primary-color)">
+    <van-tabs v-model:active="activeTab" sticky color="var(--van-primary-color)" background="transparent">
       <van-tab title="我借出的 (待收)" :name="1">
         <div class="summary-box lent-box">
           <div class="label">当前总待收</div>
-          <div class="val">{{ debtStore.getLedgerTotals().lent.toFixed(2) }}</div>
+          <div class="val din-font">{{ debtStore.getLedgerTotals().lent.toFixed(2) }}</div>
         </div>
         <div class="list-section">
-          <van-cell-group inset v-if="lentDebts.length > 0">
+          <van-cell-group inset class="custom-inset-group" v-if="lentDebts.length > 0">
             <van-swipe-cell v-for="debt in lentDebts" :key="debt.id">
               <van-cell center class="debt-cell">
                 <template #title>
@@ -52,10 +53,10 @@
       <van-tab title="我借入的 (待还)" :name="2">
         <div class="summary-box borrowed-box">
           <div class="label">当前总待还</div>
-          <div class="val">{{ debtStore.getLedgerTotals().borrowed.toFixed(2) }}</div>
+          <div class="val din-font">{{ debtStore.getLedgerTotals().borrowed.toFixed(2) }}</div>
         </div>
         <div class="list-section">
-          <van-cell-group inset v-if="borrowedDebts.length > 0">
+          <van-cell-group inset class="custom-inset-group" v-if="borrowedDebts.length > 0">
             <van-swipe-cell v-for="debt in borrowedDebts" :key="debt.id">
               <van-cell center class="debt-cell">
                 <template #title>
@@ -304,36 +305,67 @@ const onRepayDebt = () => {
 <style lang="scss" scoped>
 .debt-manage-container {
   min-height: 100vh;
-  background-color: var(--bg-color-primary);
+  background-color: var(--bg-color-secondary);
   padding-bottom: 80px;
+
+  :deep(.transparent-nav) {
+    background-color: transparent;
+    .van-nav-bar__title, .van-icon {
+      color: var(--text-color-primary);
+    }
+  }
+
+  :deep(.van-tabs__nav) {
+    background-color: transparent;
+  }
 
   .summary-box {
     margin: 16px;
-    padding: 20px;
-    border-radius: 12px;
+    padding: 24px 20px;
+    border-radius: 16px;
     color: #fff;
     
     .label {
-      font-size: 13px;
+      font-size: 14px;
       opacity: 0.9;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      font-weight: 500;
     }
     .val {
-      font-size: 28px;
+      font-size: 32px;
       font-weight: bold;
     }
     
     &.lent-box {
       background: linear-gradient(135deg, #07c160, #40d885);
+      box-shadow: 0 4px 12px rgba(7, 193, 96, 0.2);
     }
     &.borrowed-box {
       background: linear-gradient(135deg, #ee0a24, #ff5c73);
+      box-shadow: 0 4px 12px rgba(238, 10, 36, 0.2);
     }
   }
 
   .list-section {
+    .custom-inset-group {
+      margin: 0 16px 20px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+      
+      [data-theme='dark'] & {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
+    }
+    
     .debt-cell {
       padding: 16px;
+      background-color: var(--bg-color-primary);
+      transition: background-color 0.2s;
+      
+      &:active {
+        background-color: var(--van-active-color);
+      }
       
       .d-title {
         display: flex;
@@ -347,7 +379,7 @@ const onRepayDebt = () => {
       }
       
       .d-label {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--text-color-secondary);
         margin-top: 6px;
         line-height: 1.6;
@@ -360,8 +392,9 @@ const onRepayDebt = () => {
       
       .d-val {
         .remain {
-          font-size: 18px;
+          font-size: 20px;
           font-weight: bold;
+          font-family: var(--din-font, inherit);
           color: #07c160;
           &.danger { color: #ee0a24; }
           &.cleared { color: #999; text-decoration: line-through; }
@@ -386,9 +419,8 @@ const onRepayDebt = () => {
     left: 0;
     width: 100%;
     box-sizing: border-box;
-    padding: 16px 20px 24px;
-    background-color: var(--bg-color-primary);
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+    background-color: transparent;
     z-index: 100;
   }
 }

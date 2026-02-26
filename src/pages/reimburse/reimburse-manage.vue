@@ -2,21 +2,23 @@
   <div class="reimburse-manage-container">
     <van-nav-bar
       title="报销与垫付"
-      left-text="返回"
       left-arrow
       @click-left="onClickLeft"
+      class="transparent-nav"
+      :border="false"
     />
 
     <div class="summary-card">
       <div class="title">待报销总额</div>
-      <div class="amount">¥ {{ totalPendingAmount.toFixed(2) }}</div>
+      <div class="amount din-font">¥ {{ totalPendingAmount.toFixed(2) }}</div>
       <div class="sub-text">共 {{ pendingRecords.length }} 笔报销项</div>
     </div>
 
-    <van-tabs v-model:active="activeTab" sticky color="var(--van-primary-color)">
+    <van-tabs v-model:active="activeTab" sticky color="var(--van-primary-color)" background="transparent">
       <van-tab title="待报销" name="pending">
         <div class="list-container" v-if="pendingRecords.length > 0">
-          <van-swipe-cell v-for="record in pendingRecords" :key="record.id">
+          <van-cell-group inset class="custom-inset-group">
+            <van-swipe-cell v-for="record in pendingRecords" :key="record.id">
             <van-cell center class="record-cell">
               <template #icon>
                 <div class="icon-wrap">
@@ -45,14 +47,16 @@
             <template #right>
               <van-button square type="success" text="一键平账" class="reimburse-btn" @click="handleReimburse(record)" />
             </template>
-          </van-swipe-cell>
+            </van-swipe-cell>
+          </van-cell-group>
         </div>
         <van-empty v-else image="search" description="暂无待报销项目" />
       </van-tab>
       
       <van-tab title="已报销" name="done">
         <div class="list-container" v-if="doneRecords.length > 0">
-          <van-cell v-for="record in doneRecords" :key="record.id" center class="record-cell">
+          <van-cell-group inset class="custom-inset-group">
+            <van-cell v-for="record in doneRecords" :key="record.id" center class="record-cell">
             <template #icon>
               <div class="icon-wrap done-icon">
                 <van-icon :name="getCategoryIcon(record.categoryId)" size="20" />
@@ -73,7 +77,8 @@
             <template #value>
               <span class="expense-amount" style="color: #999;">{{ record.amount.toFixed(2) }}</span>
             </template>
-          </van-cell>
+            </van-cell>
+          </van-cell-group>
         </div>
         <van-empty v-else image="search" description="暂无已报销项目" />
       </van-tab>
@@ -190,13 +195,27 @@ const formatTime = (ts: number) => {
 <style lang="scss" scoped>
 .reimburse-manage-container {
   min-height: 100vh;
-  background-color: var(--bg-color-primary);
+  background-color: var(--bg-color-secondary);
+
+  :deep(.transparent-nav) {
+    background-color: transparent;
+    .van-nav-bar__title, .van-icon {
+      color: var(--text-color-primary);
+    }
+  }
+
+  :deep(.van-tabs__nav) {
+    background-color: transparent;
+  }
 
   .summary-card {
+    margin: 16px;
+    border-radius: 16px;
     background: linear-gradient(135deg, var(--van-primary-color), #5c9ce6);
     color: #fff;
     padding: 24px 20px;
     text-align: center;
+    box-shadow: 0 4px 12px rgba(25, 137, 250, 0.2);
     
     .title {
       font-size: 14px;
@@ -216,11 +235,27 @@ const formatTime = (ts: number) => {
 
   .list-container {
     padding-bottom: 30px;
+    
+    .custom-inset-group {
+      margin: 0 16px 20px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+      
+      [data-theme='dark'] & {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
+    }
   }
 
   .record-cell {
-    background-color: var(--bg-color-secondary);
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    background-color: var(--bg-color-primary);
+    padding: 16px;
+    transition: background-color 0.2s;
+    
+    &:active {
+      background-color: var(--van-active-color);
+    }
 
     .icon-wrap {
       width: 40px;

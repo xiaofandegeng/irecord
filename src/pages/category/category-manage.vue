@@ -4,9 +4,11 @@
       title="分类管理"
       left-arrow
       @click-left="onClickLeft"
+      class="transparent-nav"
+      :border="false"
     />
     
-    <van-tabs v-model:active="activeTab" sticky>
+    <van-tabs v-model:active="activeTab" sticky background="transparent">
       <van-tab title="支出分类" :name="1">
         <CategoryList :type="1" />
       </van-tab>
@@ -34,5 +36,16 @@ const onClickLeft = () => {
 .category-manage-container {
   min-height: 100vh;
   background-color: var(--bg-color-secondary);
+  
+  :deep(.transparent-nav) {
+    background-color: transparent;
+    .van-nav-bar__title, .van-icon {
+      color: var(--text-color-primary);
+    }
+  }
+  
+  :deep(.van-tabs__nav) {
+    background-color: transparent;
+  }
 }
 </style>

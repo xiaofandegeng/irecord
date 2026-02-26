@@ -2,16 +2,17 @@
   <div class="ledger-manage-container">
     <van-nav-bar
       title="账本管理"
-      left-text="返回"
       left-arrow
       @click-left="onClickLeft"
+      class="transparent-nav"
+      :border="false"
     />
     
     <div class="section-title">我的账本</div>
     
-    <div class="ledger-list">
-      <van-swipe-cell v-for="ledger in store.ledgers" :key="ledger.id">
-        <div class="ledger-item">
+    <div class="ledger-list inset-card-list">
+      <van-swipe-cell v-for="(ledger, index) in store.ledgers" :key="ledger.id">
+        <div class="ledger-item" :class="{ 'is-last': index === store.ledgers.length - 1 }">
           <div class="icon-wrap" :class="{ 'is-active': store.currentLedgerId === ledger.id }">
             <van-icon :name="ledger.icon" size="24" />
           </div>
@@ -47,7 +48,7 @@
     </div>
     
     <div class="bottom-action">
-      <van-button block type="primary" class="add-btn" @click="showAdd = true">
+      <van-button block round type="primary" class="add-btn" @click="showAdd = true">
         新建账本
       </van-button>
     </div>
@@ -131,9 +132,17 @@ const onDelete = (ledger: Ledger) => {
   display: flex;
   flex-direction: column;
   
+  :deep(.transparent-nav) {
+    background-color: transparent;
+    .van-nav-bar__title, .van-icon {
+      color: var(--text-color-primary);
+    }
+  }
+  
   .section-title {
-    padding: 16px 16px 8px;
-    font-size: 14px;
+    padding: 16px 24px 8px;
+    font-size: 13px;
+    font-weight: 500;
     color: var(--text-color-secondary);
   }
   
@@ -141,12 +150,45 @@ const onDelete = (ledger: Ledger) => {
     flex: 1;
     overflow-y: auto;
     
+    &.inset-card-list {
+      margin: 0 16px;
+      border-radius: 16px;
+      overflow: hidden;
+      background-color: transparent;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+      flex: 0 0 auto;
+      
+      [data-theme='dark'] & {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
+    }
+    
     .ledger-item {
       display: flex;
       align-items: center;
       padding: 16px;
       background-color: var(--bg-color-primary);
-      border-bottom: 1px solid #f5f6f7;
+      position: relative;
+      transition: background-color 0.2s;
+      
+      &:active {
+        background-color: var(--van-active-color);
+      }
+      
+      &:not(.is-last)::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 80px; /* offset for icon */
+        right: 16px;
+        height: 1px;
+        background-color: var(--van-gray-2);
+        transform: scaleY(0.5);
+        
+        [data-theme='dark'] & {
+          background-color: rgba(255, 255, 255, 0.08);
+        }
+      }
       
       .icon-wrap {
         width: 48px;
@@ -158,6 +200,7 @@ const onDelete = (ledger: Ledger) => {
         justify-content: center;
         align-items: center;
         margin-right: 16px;
+        transition: all 0.3s;
         
         &.is-active {
           background-color: rgba(var(--van-primary-color-rgb, 25, 137, 250), 0.1);
@@ -177,6 +220,7 @@ const onDelete = (ledger: Ledger) => {
             font-size: 16px;
             font-weight: 500;
             margin-right: 8px;
+            color: var(--text-color-primary);
           }
           
           .default-tag, .current-tag {
@@ -197,10 +241,9 @@ const onDelete = (ledger: Ledger) => {
   }
   
   .bottom-action {
-    padding: 16px;
-    background-color: var(--bg-color-primary);
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    padding: 24px 16px;
+    background-color: transparent;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
   
   .icon-picker {

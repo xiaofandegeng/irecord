@@ -2,53 +2,54 @@
   <div class="account-manage">
     <van-nav-bar
       title="资产账户管理"
-      left-text="返回"
       left-arrow
       @click-left="onClickLeft"
       fixed
       placeholder
+      class="transparent-nav"
+      :border="false"
     />
     
     <div class="container">
-      <div class="header-banner">
+      <div class="header-card">
         <div class="label">资产总计 (元)</div>
-        <div class="amount">{{ accountStore.privacyMode ? '****' : accountStore.totalNetAsset.toFixed(2) }}</div>
+        <div class="amount din-font">{{ accountStore.privacyMode ? '****' : accountStore.totalNetAsset.toFixed(2) }}</div>
       </div>
       
-      <div class="section">
-        <div class="title">我的账户 ({{ accountStore.accounts.length }})</div>
-        <div class="list">
-          <van-cell 
-            v-for="acc in accountStore.accounts" 
-            :key="acc.id" 
-            center 
-            @click="onEditAccount(acc)"
-            is-link
-          >
-            <template #icon>
-              <div class="icon-wrap" :style="{ backgroundColor: acc.color }">
-                <van-icon name="gold-coin-o" size="20" color="#fff" />
-              </div>
-            </template>
-            <template #title>
-              <span class="custom-title">{{ acc.name }}</span>
-            </template>
-            <template #label>
-              <span v-if="acc.type === 1">储蓄/现金</span>
-              <span v-else-if="acc.type === 2">信用/借贷</span>
-              <span v-else>其他</span>
-            </template>
-            <template #right-icon>
-              <span class="balance" :class="{'is-debt': acc.balance < 0}">
-                ¥ {{ accountStore.privacyMode ? '****' : acc.balance.toFixed(2) }}
-              </span>
-            </template>
-          </van-cell>
-        </div>
-      </div>
+      <div class="section-title">我的账户 ({{ accountStore.accounts.length }})</div>
+      
+      <van-cell-group inset class="custom-inset-group">
+        <van-cell 
+          v-for="acc in accountStore.accounts" 
+          :key="acc.id" 
+          center 
+          @click="onEditAccount(acc)"
+          is-link
+          clickable
+        >
+          <template #icon>
+            <div class="icon-wrap" :style="{ backgroundColor: acc.color }">
+              <van-icon name="gold-coin-o" size="20" color="#fff" />
+            </div>
+          </template>
+          <template #title>
+            <span class="custom-title">{{ acc.name }}</span>
+          </template>
+          <template #label>
+            <span v-if="acc.type === 1">储蓄/现金</span>
+            <span v-else-if="acc.type === 2">信用/借贷</span>
+            <span v-else>其他</span>
+          </template>
+          <template #right-icon>
+            <span class="balance din-font" :class="{'is-debt': acc.balance < 0}">
+              ¥ {{ accountStore.privacyMode ? '****' : acc.balance.toFixed(2) }}
+            </span>
+          </template>
+        </van-cell>
+      </van-cell-group>
       
       <div class="action-wrap">
-        <van-button type="primary" block @click="showAdd = true">新增账户</van-button>
+        <van-button type="primary" block round @click="showAdd = true">新增账户</van-button>
       </div>
     </div>
 
@@ -144,19 +145,31 @@ const onConfirmAdd = () => {
   min-height: 100vh;
   background-color: var(--bg-color-secondary);
   
+  :deep(.transparent-nav) {
+    background-color: transparent;
+    .van-nav-bar__title, .van-icon {
+      color: var(--text-color-primary);
+    }
+  }
+  
   .container {
     padding-bottom: 80px;
+    padding-top: 12px;
     
-    .header-banner {
+    .header-card {
+      margin: 0 16px 20px;
+      border-radius: 16px;
       background: linear-gradient(135deg, var(--van-primary-color), #23d47a);
       color: #fff;
       padding: 30px 20px;
       text-align: center;
+      box-shadow: 0 4px 12px rgba(7, 193, 96, 0.2);
       
       .label {
         font-size: 14px;
         opacity: 0.9;
         margin-bottom: 8px;
+        font-weight: 500;
       }
       .amount {
         font-size: 36px;
@@ -164,21 +177,21 @@ const onConfirmAdd = () => {
       }
     }
     
-    .section {
-      margin-top: -20px;
-      position: relative;
-      z-index: 10;
+    .section-title {
+      padding: 0 24px 8px;
+      font-size: 13px;
+      color: var(--text-color-secondary);
+      font-weight: 500;
+    }
+    
+    .custom-inset-group {
+      margin: 0 16px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
       
-      .title {
-        padding: 0 16px 10px;
-        font-size: 14px;
-        color: var(--text-color-secondary);
-      }
-      
-      .list {
-        background-color: var(--bg-color-primary);
-        border-radius: 12px 12px 0 0;
-        overflow: hidden;
+      [data-theme='dark'] & {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
       }
       
       .icon-wrap {
@@ -206,10 +219,25 @@ const onConfirmAdd = () => {
           color: var(--van-danger-color);
         }
       }
+      
+      :deep(.van-cell) {
+        background-color: var(--bg-color-primary);
+        padding: 14px 16px;
+        transition: background-color 0.2s;
+        
+        &::after {
+          left: 64px;
+          right: 16px;
+        }
+        
+        &:active {
+          background-color: var(--van-active-color);
+        }
+      }
     }
     
     .action-wrap {
-      padding: 24px 16px;
+      padding: 32px 16px;
     }
   }
 }

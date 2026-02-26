@@ -4,6 +4,8 @@
       title="WebDAV 云同步"
       left-arrow
       @click-left="onClickLeft"
+      class="transparent-nav"
+      :border="false"
     />
 
     <div class="intro">
@@ -13,7 +15,7 @@
     </div>
 
     <van-form @submit="onSave">
-      <van-cell-group inset>
+      <van-cell-group inset class="custom-inset-group">
         <van-field
           v-model="syncStore.config.url"
           name="url"
@@ -139,11 +141,25 @@ const handleRestore = async () => {
   min-height: 100vh;
   background-color: var(--bg-color-secondary);
 
+  :deep(.transparent-nav) {
+    background-color: transparent;
+    .van-nav-bar__title, .van-icon {
+      color: var(--text-color-primary);
+    }
+  }
+
   .intro {
+    margin: 16px;
+    border-radius: 16px;
     padding: 32px 16px;
     text-align: center;
     background-color: var(--bg-color-primary);
-    margin-bottom: 12px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+    
+    [data-theme='dark'] & {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
 
     h3 {
       margin: 16px 0 8px;
@@ -160,10 +176,27 @@ const handleRestore = async () => {
     }
   }
 
+  :deep(.custom-inset-group) {
+    margin: 0 16px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+    
+    [data-theme='dark'] & {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
+  }
+
   .action-panel {
-    margin-top: 24px;
-    padding: 16px;
+    margin: 24px 16px;
+    border-radius: 16px;
+    padding: 24px 16px;
     background-color: var(--bg-color-primary);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+    
+    [data-theme='dark'] & {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
     
     .status-text {
       text-align: center;

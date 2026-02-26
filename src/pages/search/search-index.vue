@@ -3,8 +3,9 @@
     <van-search
       v-model="keyword"
       show-action
+      shape="round"
       placeholder="输入备注或金额进行搜索"
-      background="var(--van-primary-color)"
+      background="transparent"
       @cancel="onCancel"
     >
       <template #action>
@@ -25,11 +26,12 @@
           共找到 {{ filteredRecords.length }} 笔记录，总计 ¥ {{ accountStore.privacyMode ? '****' : totalSum.toFixed(2) }}
         </div>
         
-        <van-cell-group>
+        <van-cell-group inset class="custom-inset-group">
           <van-cell 
             v-for="record in filteredRecords" 
             :key="record.id"
             center
+            class="record-cell"
           >
             <template #icon>
               <div class="icon-wrap" :class="{'is-income': record.type === 2}">
@@ -256,11 +258,15 @@ const onCancel = () => {
   display: flex;
   flex-direction: column;
   
+  :deep(.van-search) {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+  
   :deep(.van-search__content) {
-    border-radius: 8px;
+    border-radius: 16px;
   }
   :deep(.van-search__action) {
-    color: #fff;
+    color: var(--text-color-primary);
   }
   
   .result-area {
@@ -268,9 +274,30 @@ const onCancel = () => {
     overflow-y: auto;
     
     .summary-line {
-      padding: 12px 16px;
+      padding: 12px 20px;
       font-size: 13px;
       color: var(--text-color-secondary);
+    }
+
+    .custom-inset-group {
+      margin: 0 16px 20px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+      
+      [data-theme='dark'] & {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
+    }
+    
+    .record-cell {
+      background-color: var(--bg-color-primary);
+      padding: 14px 16px;
+      transition: background-color 0.2s;
+      
+      &:active {
+        background-color: var(--van-active-color);
+      }
     }
     
     .icon-wrap {
@@ -347,7 +374,7 @@ const onCancel = () => {
     display: flex;
     align-items: center;
     gap: 16px;
-    color: #fff;
+    color: var(--text-color-primary);
     cursor: pointer;
     font-size: 14px;
     

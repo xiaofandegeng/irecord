@@ -4,12 +4,14 @@
       title="周期账单"
       left-arrow
       @click-left="onClickLeft"
+      class="transparent-nav"
+      :border="false"
     />
     
     <div class="list-area">
-      <div v-if="recurringStore.rules.length > 0">
+      <van-cell-group inset class="custom-inset-group" v-if="recurringStore.rules.length > 0">
         <van-swipe-cell v-for="rule in recurringStore.rules" :key="rule.id">
-          <van-cell center class="rule-card">
+          <van-cell center class="rule-cell">
             <template #title>
               <div class="title-row">
                 <div class="icon-wrap" :class="{'is-income': rule.type === 2}">
@@ -45,7 +47,7 @@
             <van-button square text="删除" type="danger" class="delete-button" @click="onDeleteRule(rule.id)" />
           </template>
         </van-swipe-cell>
-      </div>
+      </van-cell-group>
       <div v-else class="empty-state">
         <van-empty image="calendar" description="暂无自动化账单，去添加吧" />
       </div>
@@ -253,15 +255,37 @@ const onConfirmAdd = () => {
   display: flex;
   flex-direction: column;
   
+  :deep(.transparent-nav) {
+    background-color: transparent;
+    .van-nav-bar__title, .van-icon {
+      color: var(--text-color-primary);
+    }
+  }
+  
   .list-area {
     flex: 1;
     overflow-y: auto;
-    padding: 12px;
+    padding: 16px 0;
     
-    .rule-card {
-      margin-bottom: 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    .custom-inset-group {
+      margin: 0 16px 20px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+      
+      [data-theme='dark'] & {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
+    }
+    
+    .rule-cell {
+      background-color: var(--bg-color-primary);
+      padding: 16px;
+      transition: background-color 0.2s;
+      
+      &:active {
+        background-color: var(--van-active-color);
+      }
       
       .title-row {
         display: flex;
@@ -315,9 +339,9 @@ const onConfirmAdd = () => {
   }
 
   .bottom-action {
-    padding: 16px;
-    background-color: var(--bg-color-primary);
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    padding: 24px 16px;
+    background-color: transparent;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
   
   .add-panel {
