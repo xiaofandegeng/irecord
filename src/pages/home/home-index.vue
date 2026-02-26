@@ -190,15 +190,28 @@
     </van-popup>
 
     <!-- 各种弹出层与联动组件 -->
-    <van-popup v-model:show="showCalendar" position="bottom" round>
-      <van-date-picker
-        v-model="currentDateArr"
-        title="选择记账日期"
-        :min-date="minDate"
-        :max-date="maxDate"
-        @confirm="onConfirmDate"
-        @cancel="showCalendar = false"
-      />
+    <van-popup v-model:show="showCalendar" position="bottom" round class="datetime-popup">
+      <div class="datetime-header">
+        <span class="cancel" @click="showCalendar = false">取消</span>
+        <span class="title">选择记账时间</span>
+        <span class="confirm" @click="onConfirmDateTime">确认</span>
+      </div>
+      <van-tabs v-model:active="dateTimeTab" shrink>
+        <van-tab title="日期">
+          <van-date-picker
+            v-model="currentDateArr"
+            :min-date="minDate"
+            :max-date="maxDate"
+            :show-toolbar="false"
+          />
+        </van-tab>
+        <van-tab title="时间">
+          <van-time-picker
+            v-model="currentTimeArr"
+            :show-toolbar="false"
+          />
+        </van-tab>
+      </van-tabs>
     </van-popup>
     <van-action-sheet v-model:show="showAccountPicker" :actions="accountActions" cancel-text="取消" @select="onSelectAccount" title="选择转出账户" />
     <van-action-sheet v-model:show="showToAccountPicker" :actions="toAccountActions" cancel-text="取消" @select="onSelectToAccount" title="选择转入账户" />
@@ -258,8 +271,9 @@ const onInputSheetClosed = () => {
   showInputSheet.value = false
 }
 
-// 日期管理
+// 日期与时间管理
 const showCalendar = ref(false)
+const dateTimeTab = ref(0)
 const selectedDate = ref<Date>(new Date())
 const minDate = new Date(2010, 0, 1)
 const maxDate = new Date()
@@ -270,21 +284,37 @@ const currentDateArr = ref([
   String(selectedDate.value.getDate()).padStart(2, '0')
 ])
 
+const currentTimeArr = ref([
+  String(selectedDate.value.getHours()).padStart(2, '0'),
+  String(selectedDate.value.getMinutes()).padStart(2, '0')
+])
+
 watch(selectedDate, (newVal) => {
   currentDateArr.value = [
     String(newVal.getFullYear()), 
     String(newVal.getMonth() + 1).padStart(2, '0'), 
     String(newVal.getDate()).padStart(2, '0')
   ]
+  currentTimeArr.value = [
+    String(newVal.getHours()).padStart(2, '0'),
+    String(newVal.getMinutes()).padStart(2, '0')
+  ]
 })
 
 const displayDate = computed(() => {
-  if (dayjs(selectedDate.value).isToday()) return '今天'
-  return dayjs(selectedDate.value).format('MM-DD')
+  const d = dayjs(selectedDate.value)
+  if (d.isToday()) return `今天 ${d.format('HH:mm')}`
+  return d.format('MM-DD HH:mm')
 })
 
-const onConfirmDate = ({ selectedValues }: any) => {
-  selectedDate.value = new Date(Number(selectedValues[0]), Number(selectedValues[1]) - 1, Number(selectedValues[2]))
+const onConfirmDateTime = () => {
+  const year = Number(currentDateArr.value[0])
+  const month = Number(currentDateArr.value[1]) - 1
+  const date = Number(currentDateArr.value[2])
+  const hours = Number(currentTimeArr.value[0])
+  const minutes = Number(currentTimeArr.value[1])
+  
+  selectedDate.value = new Date(year, month, date, hours, minutes)
   showCalendar.value = false
 }
 
@@ -704,6 +734,24 @@ const submitRecord = () => {
   /* === Bottom Fixed Area (Action Sheet) === */
   .fluid-input-sheet {
     background-color: var(--bg-color-primary);
+  }
+
+  .datetime-popup {
+    display: flex;
+    flex-direction: column;
+    
+    .datetime-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      font-size: 16px;
+      font-weight: 500;
+      
+      .cancel { color: var(--text-color-secondary); }
+      .confirm { color: var(--van-primary-color); }
+      .title { font-weight: bold; }
+    }
   }
 
   .transfer-action-wrap {
