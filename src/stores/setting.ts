@@ -44,9 +44,30 @@ export const useSettingStore = defineStore('setting', () => {
         theme.value = mode
     }
 
+    // --- 主题控制 --- 
+    const primaryColor = ref('#07c160')
+    const savedColor = localStorage.getItem('irecord_primary_color')
+    if (savedColor) {
+        primaryColor.value = savedColor
+    }
+
+    watch(primaryColor, (newColor) => {
+        localStorage.setItem('irecord_primary_color', newColor)
+        document.documentElement.style.setProperty('--van-primary-color', newColor)
+
+        // 可选：也能支持一些特定透明度用于组件内部阴影/背景
+        // 比如借款卡片的渐变等，我们统一使用单色或原色
+    }, { immediate: true })
+
+    const setPrimaryColor = (color: string) => {
+        primaryColor.value = color
+    }
+
     return {
         theme,
         isDark,
-        setTheme
+        setTheme,
+        primaryColor,
+        setPrimaryColor
     }
 })

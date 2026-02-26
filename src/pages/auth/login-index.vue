@@ -110,7 +110,8 @@ const onSubmit = (values: any) => {
       width: 80px;
       height: 80px;
       border-radius: 20px;
-      background: linear-gradient(135deg, #07c160 0%, #059b4c 100%);
+      background: var(--van-primary-color);
+      opacity: 0.9;
       display: flex;
       justify-content: center;
       align-items: center;

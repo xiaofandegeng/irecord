@@ -50,7 +50,9 @@
             </van-swipe-cell>
           </van-cell-group>
         </div>
-        <van-empty v-else image="search" description="暂无待报销项目" />
+        <div class="empty-state" v-else>
+          <EmptyState type="search" description="暂无待报销项目" />
+        </div>
       </van-tab>
       
       <van-tab title="已报销" name="done">
@@ -65,7 +67,7 @@
             <template #title>
               <div class="cell-title">
                 <span>{{ getCategoryName(record.categoryId) }}</span>
-                <span class="done-mark" style="font-size: 12px; color: #07c160; margin-left: 8px;">(已平账)</span>
+                <span class="done-mark" style="font-size: 12px; color: var(--van-primary-color); margin-left: 8px;">(已平账)</span>
               </div>
             </template>
             <template #label>
@@ -80,7 +82,9 @@
             </van-cell>
           </van-cell-group>
         </div>
-        <van-empty v-else image="search" description="暂无已报销项目" />
+        <div class="empty-state" v-else>
+          <EmptyState type="search" description="暂无已报销项目" />
+        </div>
       </van-tab>
     </van-tabs>
 

@@ -91,7 +91,7 @@
         </div>
       </transition-group>
       <div v-else class="empty-state">
-        <van-empty image="search" description="暂无账单数据" />
+        <EmptyState type="search" description="暂无账单数据" />
       </div>
       
       <!-- 底部防遮挡 -->
@@ -131,6 +131,7 @@ import { showConfirmDialog, showImagePreview, showToast } from 'vant'
 import { useRecordStore, type RecordItem } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
 import ContributionHeatmap from '@/components/ContributionHeatmap.vue'
+import { playHaptic } from '@/utils/haptics'
 
 const store = useRecordStore()
 const accountStore = useAccountStore()
@@ -141,11 +142,13 @@ const isBatchMode = ref(false)
 const selectedRecordIds = ref<string[]>([])
 
 const toggleBatchMode = () => {
+  playHaptic('medium')
   isBatchMode.value = !isBatchMode.value
   selectedRecordIds.value = []
 }
 
 const toggleSelection = (id: string) => {
+  playHaptic('light')
   if (!isBatchMode.value) return
   if (selectedRecordIds.value.includes(id)) {
     selectedRecordIds.value = selectedRecordIds.value.filter(i => i !== id)

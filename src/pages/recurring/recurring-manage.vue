@@ -48,8 +48,8 @@
           </template>
         </van-swipe-cell>
       </van-cell-group>
-      <div v-else class="empty-state">
-        <van-empty image="calendar" description="暂无自动化账单，去添加吧" />
+      <div class="empty-state" v-else>
+        <EmptyState type="calendar" description="暂无自动化账单，去添加吧" />
       </div>
     </div>
     

@@ -46,7 +46,9 @@
               </template>
             </van-swipe-cell>
           </van-cell-group>
-          <van-empty v-else image="search" description="暂无借出记录" />
+          <div class="empty-state" v-else>
+          <EmptyState type="search" description="暂无借出记录" />
+        </div>
         </div>
       </van-tab>
 
@@ -87,7 +89,9 @@
               </template>
             </van-swipe-cell>
           </van-cell-group>
-          <van-empty v-else image="search" description="暂无借入记录" />
+          <div class="empty-state" v-else>
+          <EmptyState type="search" description="暂无借入记录" />
+        </div>
         </div>
       </van-tab>
     </van-tabs>
@@ -105,7 +109,7 @@
           <van-field name="type" label="类型">
             <template #input>
               <van-radio-group v-model="addForm.type" direction="horizontal">
-                <van-radio :name="1" checked-color="#07c160">借出 (待收)</van-radio>
+                <van-radio :name="1" checked-color="var(--van-primary-color)">借出 (待收)</van-radio>
                 <van-radio :name="2" checked-color="#ee0a24">借入 (待还)</van-radio>
               </van-radio-group>
             </template>
@@ -337,7 +341,8 @@ const onRepayDebt = () => {
     }
     
     &.lent-box {
-      background: linear-gradient(135deg, #07c160, #40d885);
+      background: linear-gradient(135deg, var(--van-primary-color), var(--van-primary-color));
+      opacity: 0.9;
       box-shadow: 0 4px 12px rgba(7, 193, 96, 0.2);
     }
     &.borrowed-box {
@@ -386,7 +391,7 @@ const onRepayDebt = () => {
         
         .progress-info {
           margin-top: 4px;
-          .repaid { color: #07c160; }
+          .repaid { color: var(--van-primary-color); }
         }
       }
       
@@ -395,7 +400,7 @@ const onRepayDebt = () => {
           font-size: 20px;
           font-weight: bold;
           font-family: var(--din-font, inherit);
-          color: #07c160;
+          color: var(--van-primary-color);
           &.danger { color: #ee0a24; }
           &.cleared { color: #999; text-decoration: line-through; }
         }

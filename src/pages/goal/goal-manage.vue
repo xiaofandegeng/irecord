@@ -14,20 +14,19 @@
         <div class="value din-font">¥ {{ store.totalTarget.toFixed(2) }}</div>
         <div class="sub-label">已存入 ¥ <span class="din-font">{{ store.totalCurrent.toFixed(2) }}</span></div>
       </div>
+      <EmptyState v-if="store.goals.length === 0" type="smile" description="暂无心愿单，快去定个小目标吧！" />
 
-      <van-empty v-if="store.goals.length === 0" image="search" description="暂无心愿单，快去定个小目标吧！" />
-
-      <div v-for="goal in store.goals" :key="goal.id" class="goal-card">
-        <div class="header">
-          <div class="icon-wrap"><van-icon :name="goal.icon" /></div>
-          <div class="name">{{ goal.name }}</div>
-          <div class="actions">
-            <span class="btn deposit" @click="openDeposit(goal)">存钱</span>
-            <span class="btn edit" @click="openEdit(goal)">编辑</span>
-            <span class="btn delete" @click="onDelete(goal)">删除</span>
+      <transition-group v-else name="list" tag="div" class="goal-list">
+        <div v-for="goal in store.goals" :key="goal.id" class="goal-card">
+          <div class="header">
+            <div class="icon-wrap"><van-icon :name="goal.icon" /></div>
+            <div class="name">{{ goal.name }}</div>
+            <div class="actions">
+              <span class="btn deposit" @click="openDeposit(goal)">存钱</span>
+              <span class="btn edit" @click="openEdit(goal)">编辑</span>
+              <span class="btn delete" @click="onDelete(goal)">删除</span>
+            </div>
           </div>
-        </div>
-        
         <div class="progress-info">
           <div class="amounts">
             <span class="current din-font">¥ {{ goal.currentAmount.toFixed(2) }}</span>
@@ -45,7 +44,8 @@
         <div class="deadline" v-if="goal.deadline">
           目标日: {{ new Date(goal.deadline).toLocaleDateString() }}
         </div>
-      </div>
+        </div> <!-- end of goal-card -->
+      </transition-group>
     </div>
     
     <div class="bottom-action">

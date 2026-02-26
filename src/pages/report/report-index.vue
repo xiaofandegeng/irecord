@@ -66,7 +66,7 @@
 
       <!-- 数据为空时 -->
       <div v-if="chartData.length === 0" class="empty-state">
-        <van-empty image="search" description="本期暂无账单数据" />
+        <EmptyState type="search" description="本期暂无账单数据" />
       </div>
 
       <template v-else>

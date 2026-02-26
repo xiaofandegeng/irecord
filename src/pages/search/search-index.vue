@@ -69,7 +69,7 @@
       </template>
       
       <div v-else-if="keyword" class="empty-state">
-        <van-empty image="search" description="未搜索到相关账单" />
+        <EmptyState type="search" description="未搜索到相关账单" />
       </div>
       
       <div v-else class="empty-state placeholder">

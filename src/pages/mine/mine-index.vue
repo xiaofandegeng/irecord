@@ -2,17 +2,19 @@
   <div class="mine-container">
     <!-- 顶部超级资产大盘卡 -->
     <div class="hero-asset-card">
-      <div class="user-info">
+      <div class="user-info" @click="router.push('/profile-edit')">
         <div class="avatar-wrap">
-          <van-image v-if="userStore.userInfo?.avatar" round width="56" height="56" :src="userStore.userInfo.avatar" />
-          <div v-else class="default-avatar"><van-icon name="smile" size="32" color="#fff" /></div>
+          <van-image round width="56" height="56" :src="userStore.userInfo?.avatar" />
         </div>
         <div class="text-info">
           <div class="main-title">
-            <span class="name">{{ userStore.userInfo?.username || '记账达人' }}</span>
-            <div class="badge">已记账 {{ totalDays }} 天</div>
+            <span class="name">{{ userStore.userInfo?.username }}</span>
+            <van-icon name="arrow" color="var(--text-color-secondary)" size="14" />
           </div>
-          <div class="sub-title">让每一笔财富都有迹可循</div>
+          <div class="gamify-badges">
+            <div class="badge"><van-icon name="points" /> 已记账 {{ totalDays }} 天</div>
+            <div class="badge"><van-icon name="orders-o" /> 共 {{ store.currentLedgerRecords.length }} 笔记录</div>
+          </div>
         </div>
       </div>
       
@@ -391,26 +393,33 @@ const handleLogout = () => {
         .main-title {
           display: flex;
           align-items: center;
-          margin-bottom: 6px;
+          margin-bottom: 8px;
           
           .name {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 600;
             color: var(--text-color-primary);
             margin-right: 8px;
           }
+        }
+        
+        .gamify-badges {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          
           .badge {
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 12px;
             background-color: rgba(var(--van-primary-color-rgb), 0.1);
             color: var(--van-primary-color);
             font-weight: 500;
           }
-        }
-        .sub-title {
-          font-size: 12px;
-          color: var(--text-color-secondary);
         }
       }
     }
