@@ -491,28 +491,38 @@ const submitRecord = () => {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: relative;
       
       .ledger-switch, .right-placeholder {
-        width: 60px; // 保持居中平衡
         display: flex;
         align-items: center;
+        flex: 1;
+      }
+      
+      .right-placeholder {
+        justify-content: flex-end;
       }
       
       .ledger-switch {
         font-size: 14px;
         color: var(--text-color-primary);
         font-weight: 500;
+        z-index: 2;
         
         .van-icon { margin-right: 4px; }
         .arrow { font-size: 12px; margin-left: 2px; color: var(--text-color-secondary); }
       }
 
       .type-switch-pill {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
         background-color: var(--bg-color-secondary);
         border-radius: 8px;
         padding: 4px;
         width: 140px;
+        z-index: 1;
         
         .pill-item {
           flex: 1;
@@ -610,6 +620,59 @@ const submitRecord = () => {
         
         .text-secondary {
           color: var(--text-color-secondary);
+        }
+      }
+    }
+
+    /* === Transfer Tab === */
+    .transfer-accounts-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 20px;
+      margin: 20px 16px;
+      background: var(--bg-color-secondary);
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+
+      [data-theme='dark'] & {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+
+      .transfer-account-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        cursor: pointer;
+        
+        .label {
+          font-size: 13px;
+          color: var(--text-color-secondary);
+          margin-bottom: 8px;
+        }
+        
+        .value-wrap {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          
+          .value {
+            font-size: 16px;
+            font-weight: 600;
+          }
+        }
+      }
+      
+      .transfer-swap-icon {
+        padding: 0 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+        cursor: pointer;
+        &:active {
+          transform: scale(0.9) rotate(180deg);
         }
       }
     }

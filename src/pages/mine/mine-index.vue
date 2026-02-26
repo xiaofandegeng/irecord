@@ -327,10 +327,12 @@ const handleLogout = () => {
   height: 100%;
   background-color: var(--bg-color-secondary);
   overflow-y: auto;
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top);
   
-  // 底部留白，防止被 Tabbar 挡住
+  // 底部留白，防止被 Tabbar 和全局浮动按钮挡住
   .bottom-padding {
-    height: 80px;
+    height: 150px;
   }
   
   // 统一的 Din 字体
