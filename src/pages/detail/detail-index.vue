@@ -200,6 +200,7 @@ const currentRefundRecord = ref<RecordItem | null>(null)
 const refundAmount = ref('')
 
 const onRefund = (record: RecordItem) => {
+  playHaptic('medium')
   currentRefundRecord.value = record
   refundAmount.value = String(record.amount)
   showRefund.value = true
@@ -299,6 +300,7 @@ const formatTime = (ts: number) => {
 }
 
 const onDelete = (id: string) => {
+  playHaptic('medium')
   showConfirmDialog({
     title: '提示',
     message: '确认删除该笔账单吗？'
@@ -446,7 +448,6 @@ const previewImage = (images: string[], startPosition: number) => {
       background-color: var(--bg-color-primary);
       border-radius: 16px;
       margin-bottom: 16px;
-      overflow: hidden;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
       
       [data-theme='dark'] & {
@@ -455,6 +456,17 @@ const previewImage = (images: string[], startPosition: number) => {
       }
       
       .date-card-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-radius: 16px 16px 0 0;
+        backdrop-filter: blur(14px);
+        background-color: rgba(var(--bg-color-secondary-rgb, 247, 248, 250), 0.85); 
+        
+        [data-theme='dark'] & {
+          background-color: rgba(0, 0, 0, 0.6);
+        }
+        
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -492,6 +504,11 @@ const previewImage = (images: string[], startPosition: number) => {
           }
           &:active {
             background-color: var(--van-active-color);
+          }
+          
+          &.is-last {
+            border-radius: 0 0 16px 16px;
+            overflow: hidden;
           }
           
           &:not(.is-last)::after {

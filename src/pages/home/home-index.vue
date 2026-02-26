@@ -99,81 +99,95 @@
             </div>
           </div>
         </div>
+        
+        <div class="transfer-action-wrap">
+          <van-button type="primary" round block class="transfer-btn" @click="showInputSheet = true">
+            输入转账金额
+          </van-button>
+        </div>
       </template>
     </div>
 
-    <!-- 底部：固定操作与键盘区 -->
-    <div class="bottom-action-area">
-      <!-- 快捷工具行 (横向可滑动) -->
-      <div class="tools-row">
-        <div class="tool-pill" @click="showCalendar = true">
-          <van-icon name="clock-o" />
-          <span>{{ displayDate }}</span>
+    <!-- 流体输入浮层 -->
+    <van-popup
+      v-model:show="showInputSheet"
+      position="bottom"
+      class="fluid-input-sheet"
+      round
+      @closed="onInputSheetClosed"
+    >
+      <div class="bottom-action-area">
+        <!-- 快捷工具行 (横向可滑动) -->
+        <div class="tools-row">
+          <div class="tool-pill" @click="showCalendar = true">
+            <van-icon name="clock-o" />
+            <span>{{ displayDate }}</span>
+          </div>
+          <div class="tool-pill" @click="showAccountPicker = true" v-if="recordType !== 3">
+            <van-icon name="gold-coin-o" />
+            <span>{{ currentAccount?.name || '选择账户' }}</span>
+          </div>
+          <div class="tool-pill" @click="showGoalPicker = true" v-if="recordType === 1 && goalStore.goals.length > 0">
+            <van-icon name="flag-o" />
+            <span>{{ currentGoal?.name || '心愿单' }}</span>
+          </div>
+          <div class="tool-pill" @click="showCurrencyPicker = true" v-if="selectedCurrency !== (ledgerStore.currentLedger.baseCurrency || 'CNY')">
+            <van-icon name="exchange" />
+            <span>{{ selectedCurrency }} 汇率:</span>
+            <input type="number" v-model="exchangeRate" class="inline-input" />
+          </div>
+          <!-- 报销开关 -->
+          <div class="tool-pill no-bg" v-if="recordType === 1">
+            <van-checkbox v-model="isReimbursable" shape="square" icon-size="14px" checked-color="var(--van-primary-color)">
+              <span class="checkbox-label">可报销</span>
+            </van-checkbox>
+          </div>
+          <!-- 存为模板按钮 -->
+          <div class="tool-pill" @click="showSaveTemplate = true" v-if="amountVal !== '0'">
+            <van-icon name="star-o" />
+            <span>设为模板</span>
+          </div>
+          <div class="tool-pill" v-if="recordType === 1">
+            <van-uploader v-model="fileList" multiple :max-count="3" :after-read="onAfterRead">
+              <div class="flex-center">
+                <van-icon name="photograph" />
+                <span style="margin-left:4px">小票/识别</span>
+              </div>
+            </van-uploader>
+          </div>
         </div>
-        <div class="tool-pill" @click="showAccountPicker = true" v-if="recordType !== 3">
-          <van-icon name="gold-coin-o" />
-          <span>{{ currentAccount?.name || '选择账户' }}</span>
-        </div>
-        <div class="tool-pill" @click="showGoalPicker = true" v-if="recordType === 1 && goalStore.goals.length > 0">
-          <van-icon name="flag-o" />
-          <span>{{ currentGoal?.name || '心愿单' }}</span>
-        </div>
-        <div class="tool-pill" @click="showCurrencyPicker = true" v-if="selectedCurrency !== (ledgerStore.currentLedger.baseCurrency || 'CNY')">
-          <van-icon name="exchange" />
-          <span>{{ selectedCurrency }} 汇率:</span>
-          <input type="number" v-model="exchangeRate" class="inline-input" />
-        </div>
-        <!-- 报销开关 -->
-        <div class="tool-pill no-bg" v-if="recordType === 1">
-          <van-checkbox v-model="isReimbursable" shape="square" icon-size="14px" checked-color="var(--van-primary-color)">
-            <span class="checkbox-label">可报销</span>
-          </van-checkbox>
-        </div>
-        <!-- 存为模板按钮 -->
-        <div class="tool-pill" @click="showSaveTemplate = true" v-if="amountVal !== '0'">
-          <van-icon name="star-o" />
-          <span>设为模板</span>
-        </div>
-        <div class="tool-pill" v-if="recordType === 1">
-          <van-uploader v-model="fileList" multiple :max-count="3" :after-read="onAfterRead">
-            <div class="flex-center">
-              <van-icon name="photograph" />
-              <span style="margin-left:4px">小票/识别</span>
+
+        <!-- 核心栏: 类别、备注与金额展示 -->
+        <div class="input-bar">
+          <div class="selected-cat">
+            <div class="icon-indicator" v-if="recordType !== 3">
+              <van-icon :name="selectedCategoryData?.icon || 'apps-o'" size="20" />
             </div>
-          </van-uploader>
-        </div>
-      </div>
-
-      <!-- 核心栏: 类别、备注与金额展示 -->
-      <div class="input-bar">
-        <div class="selected-cat">
-          <div class="icon-indicator" v-if="recordType !== 3">
-            <van-icon :name="selectedCategoryData?.icon || 'apps-o'" size="20" />
+            <div class="icon-indicator transfer" v-else>
+              <van-icon name="exchange" size="20" />
+            </div>
+            <span class="name">{{ recordType === 3 ? '内部转账' : (selectedCategoryData?.name || '默认') }}</span>
           </div>
-          <div class="icon-indicator transfer" v-else>
-            <van-icon name="exchange" size="20" />
+          
+          <div class="remark-wrapper">
+            <input type="text" v-model="remark" placeholder="写点备注..." class="remark-input" />
           </div>
-          <span class="name">{{ recordType === 3 ? '内部转账' : (selectedCategoryData?.name || '默认') }}</span>
-        </div>
-        
-        <div class="remark-wrapper">
-          <input type="text" v-model="remark" placeholder="写点备注..." class="remark-input" />
+
+          <div class="amount-display-wrapper">
+            <span class="currency-symbol">{{ currentCurrencySymbol }}</span>
+            <span class="amount-value" :class="{'is-zero': amountVal === '0'}">{{ amountVal }}</span>
+          </div>
         </div>
 
-        <div class="amount-display-wrapper">
-          <span class="currency-symbol">{{ currentCurrencySymbol }}</span>
-          <span class="amount-value" :class="{'is-zero': amountVal === '0'}">{{ amountVal }}</span>
+        <!-- 常驻底部的键盘 -->
+        <div class="keyboard-wrapper">
+          <CustomKeyboard 
+            v-model="amountVal"
+            @confirm="submitRecord"
+          />
         </div>
       </div>
-
-      <!-- 常驻底部的键盘 -->
-      <div class="keyboard-wrapper">
-        <CustomKeyboard 
-          v-model="amountVal"
-          @confirm="submitRecord"
-        />
-      </div>
-    </div>
+    </van-popup>
 
     <!-- 各种弹出层与联动组件 -->
     <van-calendar v-model:show="showCalendar" @confirm="onConfirmDate" :min-date="minDate" :max-date="maxDate" color="var(--van-primary-color)" />
@@ -223,6 +237,17 @@ const selectedCategoryId = ref('')
 const selectedTags = ref<string[]>([])
 const isReimbursable = ref(false)
 const fileList = ref<any[]>([])
+
+// 流体弹出层控制
+const showInputSheet = ref(false)
+const onInputSheetClosed = () => {
+  amountVal.value = '0'
+  remark.value = ''
+  selectedTags.value = []
+  isReimbursable.value = false
+  fileList.value = []
+  showInputSheet.value = false
+}
 
 // 日期管理
 const showCalendar = ref(false)
@@ -385,6 +410,7 @@ watch(recordType, () => {
 
 const selectCategory = (id: string) => {
   selectedCategoryId.value = id
+  showInputSheet.value = true
 }
 
 // 小票识别 Mock
@@ -444,6 +470,7 @@ const submitRecord = () => {
   selectedGoalId.value = ''
   isReimbursable.value = false
   fileList.value = []
+  showInputSheet.value = false
 }
 </script>
 
@@ -588,10 +615,23 @@ const submitRecord = () => {
     }
   }
 
-  /* === Bottom Fixed Area === */
+  /* === Bottom Fixed Area (Action Sheet) === */
+  .fluid-input-sheet {
+    background-color: var(--bg-color-primary);
+  }
+
+  .transfer-action-wrap {
+    padding: 0 20px;
+    margin-top: 40px;
+    .transfer-btn {
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(var(--van-primary-color-rgb, 25,137,250), 0.3);
+    }
+  }
+
   .bottom-action-area {
     background-color: var(--bg-color-primary);
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.03);
     padding-bottom: constant(safe-area-inset-bottom);
     padding-bottom: env(safe-area-inset-bottom);
 
