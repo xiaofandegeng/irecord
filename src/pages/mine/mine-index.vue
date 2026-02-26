@@ -94,6 +94,7 @@
     
     <div class="settings-list">
       <van-cell-group inset class="custom-inset-group">
+        <van-cell title="预算中心 (分类结转定投)" is-link to="/budget-index" icon="chart-trending-o" />
         <van-cell title="多账本管理 (隔离独立数据)" is-link to="/ledger-manage" icon="apps-o" />
         <van-cell title="心愿单与存钱计划" is-link to="/goal-manage" icon="flag-o" />
         <van-cell title="报销与垫付单管理" is-link to="/reimburse-manage" icon="cash-back-record" />
@@ -375,7 +376,7 @@ const handleLogout = () => {
         justify-content: center;
         align-items: center;
         margin-right: 16px;
-        border: 2px solid #fff;
+        border: 2px solid var(--bg-color-primary);
         box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 
         .default-avatar {

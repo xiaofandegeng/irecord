@@ -185,6 +185,9 @@
       <van-field v-model="templateName" label="模板名称" placeholder="例如：每日早餐" />
     </van-dialog>
     <van-action-sheet v-model:show="showCurrencyPicker" :actions="currencyActions" cancel-text="取消" close-on-click-action @cancel="showCurrencyPicker = false" @select="onSelectCurrency" />
+    
+    <!-- Omni 极客速记面板 -->
+    <OmniCommandPanel />
   </div>
 </template>
 
@@ -200,6 +203,7 @@ import { useLedgerStore } from '@/stores/ledger'
 import { useGoalStore } from '@/stores/goal'
 import { useTemplateStore, type TemplateItem } from '@/stores/template'
 import CustomKeyboard from '@/components/CustomKeyboard.vue'
+import OmniCommandPanel from '@/components/OmniCommandPanel.vue'
 import { playHaptic } from '@/utils/haptics'
 
 dayjs.extend(isToday)

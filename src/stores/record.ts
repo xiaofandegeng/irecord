@@ -179,6 +179,12 @@ export const useRecordStore = defineStore('record', {
         setBudget(amount: number) {
             this.budget = amount
         },
+        setCategoryBudgetLimit(categoryId: string, limit: number) {
+            const cat = this.categories.find(c => c.id === categoryId)
+            if (cat) {
+                cat.budgetLimit = limit
+            }
+        },
         async addRecord(record: Omit<RecordItem, 'id' | 'createTime'>) {
             import('./ledger').then(async module => {
                 const ledgerStore = module.useLedgerStore()
@@ -284,12 +290,12 @@ export const useRecordStore = defineStore('record', {
             // 1. 将原支出标记为已报销 (不再视为 reimbursable 待报销)
             expense.reimbursable = false
 
-            // 2. 生成一笔对应的报销入账
+            // 2. 闭环：生成一笔抵消原支出的负数“冲帐”
             const incomeRecord: RecordItem = {
                 id: crypto.randomUUID(),
-                type: 2, // 收入
-                amount: expense.amount,
-                categoryId: 'c6', // 暂定存入内置类别（这里可以用专用的分类，我们用内置类别或者新增类别）
+                type: 1, // 仍为支出，但金额为负数，这样就可以在分类统计、月结统计中抵消，不虚增真实收入
+                amount: -expense.amount,
+                categoryId: expense.categoryId, // 保持同分类
                 accountId: incomeAccountId,
                 recordTime: Date.now(),
                 createTime: Date.now(),
@@ -301,10 +307,10 @@ export const useRecordStore = defineStore('record', {
             // 存入入账
             this.records.unshift(incomeRecord)
 
-            // 3. 更新资产余额 (如选择了入账账户)
+            // 3. 更新资产余额 (如选择了入账账户)。收入报销款等于赚回来钱，所以这里是加钱（注意 incomeRecord.amount 是负的）
             if (incomeAccountId) {
                 import('./account').then(module => {
-                    module.useAccountStore().updateBalance(incomeAccountId, incomeRecord.amount)
+                    module.useAccountStore().updateBalance(incomeAccountId, Math.abs(incomeRecord.amount))
                 })
             }
         },

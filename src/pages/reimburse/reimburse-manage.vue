@@ -265,7 +265,7 @@ const formatTime = (ts: number) => {
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background-color: #f0f0f0;
+      background-color: var(--bg-color-secondary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -273,8 +273,8 @@ const formatTime = (ts: number) => {
       color: var(--van-primary-color);
       
       &.done-icon {
-        color: #999;
-        background-color: #f9f9f9;
+        color: var(--text-color-secondary);
+        background-color: transparent;
       }
     }
 

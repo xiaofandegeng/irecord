@@ -107,6 +107,21 @@ export const useSettingStore = defineStore('setting', () => {
         }
     }
 
+    // --- 高级预算结转 ---
+    const rolloverBudget = ref(false)
+    const savedRollover = localStorage.getItem('irecord_rollover_budget')
+    if (savedRollover) {
+        rolloverBudget.value = savedRollover === 'true'
+    }
+
+    watch(rolloverBudget, (newVal) => {
+        localStorage.setItem('irecord_rollover_budget', String(newVal))
+    })
+
+    const toggleRollover = (val: boolean) => {
+        rolloverBudget.value = val
+    }
+
     return {
         theme,
         isDark,
@@ -117,6 +132,8 @@ export const useSettingStore = defineStore('setting', () => {
         passcode,
         setPasscodeContext,
         billingStartDay,
-        setBillingStartDay
+        setBillingStartDay,
+        rolloverBudget,
+        toggleRollover
     }
 })

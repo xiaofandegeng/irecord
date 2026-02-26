@@ -106,6 +106,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'CalendarIndex',
         component: () => import('@/pages/calendar/calendar-index.vue'),
         meta: { depth: 2, title: '账单日历' }
+    },
+    {
+        path: '/budget-index',
+        name: 'BudgetIndex',
+        component: () => import('@/pages/budget/budget-index.vue'),
+        meta: { depth: 2, title: '预算中心' }
     }
 ]
 
