@@ -45,7 +45,14 @@ const isCalculating = computed(() => {
   return expression.value.includes('+') || expression.value.includes('-')
 })
 
+const triggerHaptic = () => {
+  if (navigator.vibrate) {
+    navigator.vibrate(50) // 50ms 轻微震感
+  }
+}
+
 const onKey = (key: string) => {
+  triggerHaptic()
   let val = expression.value
 
   // 防止开头输入多个点或者多个0
@@ -63,6 +70,7 @@ const onKey = (key: string) => {
 }
 
 const onOperator = (op: string) => {
+  triggerHaptic()
   if (isCalculating.value) {
     // 如果已经有算式，先求值
     calculate()
@@ -75,6 +83,7 @@ const onOperator = (op: string) => {
 }
 
 const onDelete = () => {
+  triggerHaptic()
   if (expression.value.length > 0) {
     expression.value = expression.value.slice(0, -1)
     if (expression.value === '') {
@@ -106,6 +115,7 @@ const calculate = () => {
 }
 
 const onConfirm = () => {
+  triggerHaptic()
   if (isCalculating.value) {
     calculate()
   } else {
