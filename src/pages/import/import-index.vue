@@ -125,7 +125,7 @@ const onFileChange = async (e: Event) => {
     // 智能挂载分类
     const records = rawRecords.map((r: Partial<RecordItem>) => ({
       ...r,
-      categoryId: r.categoryId || matchCategory(r.remark || '', r.type || 1)
+      categoryId: r.categoryId || matchCategory(r.remark || '', (r.type as 1 | 2) || 1)
     }))
     if (records.length === 0) {
       showToast('未能识别到有效的账单记录')

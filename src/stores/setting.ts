@@ -63,11 +63,60 @@ export const useSettingStore = defineStore('setting', () => {
         primaryColor.value = color
     }
 
+    // --- 安全隐私 ---
+    const enablePasscode = ref(false)
+    const passcode = ref('')
+
+    const savedEnablePasscode = localStorage.getItem('irecord_enable_passcode')
+    if (savedEnablePasscode) {
+        enablePasscode.value = savedEnablePasscode === 'true'
+    }
+
+    const savedPasscode = localStorage.getItem('irecord_passcode')
+    if (savedPasscode) {
+        passcode.value = savedPasscode
+    }
+
+    watch(enablePasscode, (newVal) => {
+        localStorage.setItem('irecord_enable_passcode', String(newVal))
+    })
+
+    watch(passcode, (newVal) => {
+        localStorage.setItem('irecord_passcode', newVal)
+    })
+
+    const setPasscodeContext = (enable: boolean, code: string) => {
+        enablePasscode.value = enable
+        passcode.value = code
+    }
+
+    // --- 自定义记账起始日 ---
+    const billingStartDay = ref(1) // 默认每月1日
+    const savedBillingStartDay = localStorage.getItem('irecord_billing_start_day')
+    if (savedBillingStartDay) {
+        billingStartDay.value = parseInt(savedBillingStartDay, 10) || 1
+    }
+
+    watch(billingStartDay, (newVal) => {
+        localStorage.setItem('irecord_billing_start_day', String(newVal))
+    })
+
+    const setBillingStartDay = (day: number) => {
+        if (day >= 1 && day <= 28) {
+            billingStartDay.value = day
+        }
+    }
+
     return {
         theme,
         isDark,
         setTheme,
         primaryColor,
-        setPrimaryColor
+        setPrimaryColor,
+        enablePasscode,
+        passcode,
+        setPasscodeContext,
+        billingStartDay,
+        setBillingStartDay
     }
 })

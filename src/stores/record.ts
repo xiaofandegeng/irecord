@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia'
 import { recordApi } from '@/api/record'
+import { getCustomBillingMonthRange } from '@/utils/date'
+import dayjs from 'dayjs'
+import { useSettingStore } from './setting'
 
 export interface Category {
     id: string
@@ -14,10 +17,11 @@ export interface Category {
 
 export interface RecordItem {
     id: string
-    type: 1 | 2
+    type: 1 | 2 | 3 // 1-支出 2-收入 3-转账
     amount: number
     categoryId: string
-    accountId?: string // 新增：关联的资产账户ID
+    accountId?: string // 对于转账记录，这表示转出账户ID (From)
+    toAccountId?: string // 新增：对于转账记录，这表示转入账户ID (To)
     recordTime: number
     createTime: number
     remark: string
@@ -69,13 +73,12 @@ export const useRecordStore = defineStore('record', {
             let score = 80
             const messages: string[] = []
 
-            const now = new Date()
-            const currentMonth = now.getMonth()
-            const currentYear = now.getFullYear()
+            const settingStore = useSettingStore()
+            const startDay = settingStore.billingStartDay
 
-            const lastMonthDate = new Date(currentYear, currentMonth - 1, 1)
-            const lastMonth = lastMonthDate.getMonth()
-            const lastMonthYear = lastMonthDate.getFullYear()
+            const now = new Date()
+            const { start: currentMonthStart, end: currentMonthEnd } = getCustomBillingMonthRange(now, startDay)
+            const { start: lastMonthStart, end: lastMonthEnd } = getCustomBillingMonthRange(dayjs(now).subtract(1, 'month').toDate(), startDay)
 
             let currentMonthExpense = 0
             let lastMonthExpense = 0
@@ -84,15 +87,13 @@ export const useRecordStore = defineStore('record', {
             records.forEach(r => {
                 if (r.type === 1) { // 支出 (含退款为负值)
                     // 简单规避投资账户（如果是 a5 则忽略，为了更精准。这里先按全局标准）
-                    const d = new Date(r.recordTime)
-                    const m = d.getMonth()
-                    const y = d.getFullYear()
+                    const t = r.recordTime
                     const actualAmount = r.amount * (r.exchangeRate || 1)
 
-                    if (y === currentYear && m === currentMonth) {
+                    if (t >= currentMonthStart && t <= currentMonthEnd) {
                         currentMonthExpense += actualAmount
                         categoryExpenses[r.categoryId] = (categoryExpenses[r.categoryId] || 0) + actualAmount
-                    } else if (y === lastMonthYear && m === lastMonth) {
+                    } else if (t >= lastMonthStart && t <= lastMonthEnd) {
                         lastMonthExpense += actualAmount
                     }
                 }
@@ -207,8 +208,16 @@ export const useRecordStore = defineStore('record', {
             if (record.accountId) {
                 import('./account').then(module => {
                     const accountStore = module.useAccountStore()
-                    const delta = record.type === 1 ? -record.amount : record.amount
-                    accountStore.updateBalance(record.accountId!, delta)
+                    if (record.type === 3) {
+                        // 转账
+                        accountStore.updateBalance(record.accountId!, -record.amount)
+                        if (record.toAccountId) {
+                            accountStore.updateBalance(record.toAccountId, record.amount)
+                        }
+                    } else {
+                        const delta = record.type === 1 ? -record.amount : record.amount
+                        accountStore.updateBalance(record.accountId!, delta)
+                    }
                 })
             }
 
@@ -234,8 +243,15 @@ export const useRecordStore = defineStore('record', {
                 if (deleted.accountId) {
                     import('./account').then(module => {
                         const accountStore = module.useAccountStore()
-                        const delta = deleted.type === 1 ? deleted.amount : -deleted.amount
-                        accountStore.updateBalance(deleted.accountId!, delta)
+                        if (deleted.type === 3) {
+                            accountStore.updateBalance(deleted.accountId!, deleted.amount)
+                            if (deleted.toAccountId) {
+                                accountStore.updateBalance(deleted.toAccountId, -deleted.amount)
+                            }
+                        } else {
+                            const delta = deleted.type === 1 ? deleted.amount : -deleted.amount
+                            accountStore.updateBalance(deleted.accountId!, delta)
+                        }
                     })
                 }
 

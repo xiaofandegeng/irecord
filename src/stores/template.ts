@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 export interface TemplateItem {
     id: string
     name: string // 模板名称，如“早餐包子”
-    type: 1 | 2
+    type: 1 | 2 | 3
     amount: number
     categoryId: string
     accountId?: string

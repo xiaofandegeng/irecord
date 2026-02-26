@@ -64,18 +64,82 @@
       </div>
     </div>
 
+    <!-- 隐私安全设置 -->
+    <div class="privacy-settings">
+      <div class="section-title">安全隐私</div>
+      <van-cell-group inset>
+        <van-cell title="应用安全锁" label="打开App时需要验证密码">
+          <template #right-icon>
+            <van-switch v-model="localEnablePasscode" @change="onPasscodeSwitchChange" size="24" :active-color="settingStore.primaryColor" />
+          </template>
+        </van-cell>
+        <van-cell 
+          v-if="localEnablePasscode" 
+          title="修改安全密码" 
+          is-link 
+          @click="openPasscodeEdit"
+        />
+      </van-cell-group>
+    </div>
+
+    <!-- 记账设置 -->
+    <div class="accounting-settings">
+      <div class="section-title">记账设置</div>
+      <van-cell-group inset>
+        <van-cell
+          title="起账日设置"
+          :value="`每月 ${settingStore.billingStartDay} 日`"
+          is-link
+          @click="showStartDayPicker = true"
+          label="每月账单周期开始的日期"
+        />
+      </van-cell-group>
+    </div>
+
     <div class="action-btn">
       <van-button round block type="primary" size="large" @click="saveProfile">
         保 存
       </van-button>
     </div>
+
+    <!-- 修改/设置密码键盘弹窗 -->
+    <van-popup v-model:show="showKeyboardPopup" position="bottom" round safe-area-inset-bottom @closed="onKeyboardClosed">
+      <div class="passcode-setup-header">
+        <div class="title">{{ passcodeStep === 1 ? '请设置 4 位安全密码' : '请再次确认密码' }}</div>
+      </div>
+      <div class="passcode-input-wrap">
+        <van-password-input
+          :value="tempPasscode"
+          :focused="showKeyboardPopup"
+          :length="4"
+          :error-info="passcodeError"
+          @focus="showKeyboardPopup = true"
+        />
+      </div>
+      <van-number-keyboard
+        v-model="tempPasscode"
+        :show="showKeyboardPopup"
+        :maxlength="4"
+        @blur="showKeyboardPopup = false"
+      />
+    </van-popup>
+
+    <!-- 记账起始日选择 -->
+    <van-popup v-model:show="showStartDayPicker" position="bottom" round safe-area-inset-bottom>
+      <van-picker
+        :columns="startDayColumns"
+        @confirm="onStartDayConfirm"
+        @cancel="showStartDayPicker = false"
+        title="选择起账日"
+      />
+    </van-popup>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast } from 'vant'
+import { showToast, showDialog } from 'vant'
 import { useUserStore, DEFAULT_AVATARS } from '@/stores/user'
 import { useSettingStore } from '@/stores/setting'
 import { playHaptic } from '@/utils/haptics'
@@ -103,6 +167,96 @@ const selectTheme = (color: string) => {
 const selectAvatar = (url: string) => {
   playHaptic('light')
   currentAvatar.value = url
+}
+
+// ==== 安全隐私设定逻辑 ====
+const localEnablePasscode = ref(settingStore.enablePasscode)
+const showKeyboardPopup = ref(false)
+const passcodeStep = ref(1) // 1: 创设, 2: 确认
+const tempPasscode = ref('')
+const firstPasscode = ref('')
+const passcodeError = ref('')
+
+const onPasscodeSwitchChange = (val: boolean) => {
+  if (val) {
+    if (!settingStore.passcode) {
+      // 从未设置过，强制去设置
+      localEnablePasscode.value = false
+      openPasscodeEdit()
+    } else {
+      settingStore.setPasscodeContext(true, settingStore.passcode)
+    }
+  } else {
+    // 关闭
+    showDialog({
+      title: '关闭安全锁',
+      message: '确定要关闭启动应用时的密码保护吗？',
+      showCancelButton: true
+    }).then(() => {
+      settingStore.setPasscodeContext(false, '')
+    }).catch(() => {
+      localEnablePasscode.value = true
+    })
+  }
+}
+
+const openPasscodeEdit = () => {
+  passcodeStep.value = 1
+  tempPasscode.value = ''
+  firstPasscode.value = ''
+  passcodeError.value = ''
+  showKeyboardPopup.value = true
+}
+
+const onKeyboardClosed = () => {
+  tempPasscode.value = ''
+  passcodeError.value = ''
+}
+
+watch(tempPasscode, (val) => {
+  if (val.length === 4) {
+    if (passcodeStep.value === 1) {
+      // 步骤1完成
+      playHaptic('light')
+      firstPasscode.value = val
+      passcodeStep.value = 2
+      tempPasscode.value = ''
+      passcodeError.value = ''
+    } else if (passcodeStep.value === 2) {
+      // 步骤2完成
+      if (val === firstPasscode.value) {
+        playHaptic('medium')
+        settingStore.setPasscodeContext(true, val)
+        localEnablePasscode.value = true
+        showKeyboardPopup.value = false
+        showToast('安全锁设置成功')
+      } else {
+        playHaptic('heavy')
+        passcodeError.value = '两次输入的密码不一致，请重试'
+        tempPasscode.value = ''
+      }
+    }
+  } else {
+    passcodeError.value = ''
+  }
+})
+
+// ==== 起账日逻辑 ====
+const showStartDayPicker = ref(false)
+const startDayColumns = [
+  ...Array.from({ length: 28 }, (_, i) => ({
+    text: `${i + 1}日`,
+    value: i + 1
+  }))
+]
+
+const onStartDayConfirm = ({ selectedOptions }: any) => {
+  if (selectedOptions && selectedOptions[0]) {
+    playHaptic('medium')
+    settingStore.setBillingStartDay(selectedOptions[0].value)
+    showToast('起账日已更新')
+  }
+  showStartDayPicker.value = false
 }
 
 const saveProfile = () => {
@@ -282,9 +436,43 @@ const saveProfile = () => {
       }
     }
   }
+
+  .privacy-settings,
+  .accounting-settings {
+    margin-top: 24px;
+    padding: 0 16px;
+    
+    .section-title {
+      font-size: 14px;
+      color: var(--text-color-secondary);
+      margin-bottom: 12px;
+      padding-left: 8px;
+    }
+  }
   
   .action-btn {
     margin: auto 24px 40px;
+  }
+
+  .passcode-setup-header {
+    text-align: center;
+    padding: 24px 0 16px;
+    .title {
+      font-size: 18px;
+      font-weight: 500;
+      color: #333;
+    }
+  }
+
+  .passcode-input-wrap {
+    padding: 0 24px 24px;
+    :deep(.van-password-input__item) {
+      background: var(--bg-color-secondary);
+      border-radius: 8px;
+    }
+  }
+  
+  .action-btn {
     margin-top: 40px;
     
     .van-button {

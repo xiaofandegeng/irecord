@@ -100,6 +100,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'ProfileEdit',
         component: () => import('@/pages/mine/profile-edit.vue'),
         meta: { depth: 2, title: '个人资料' }
+    },
+    {
+        path: '/calendar-index',
+        name: 'CalendarIndex',
+        component: () => import('@/pages/calendar/calendar-index.vue'),
+        meta: { depth: 2, title: '账单日历' }
     }
 ]
 

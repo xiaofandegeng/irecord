@@ -156,9 +156,10 @@ import { showToast, showConfirmDialog } from 'vant'
 import { useRecordStore } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
 import { useGoalStore } from '@/stores/goal'
-import { useDebtStore } from '@/stores/debt'
 import { useUserStore } from '@/stores/user'
 import { useSettingStore } from '@/stores/setting'
+import { getCustomBillingMonthRange } from '@/utils/date'
+import { useDebtStore } from '@/stores/debt'
 
 const router = useRouter()
 const store = useRecordStore()
@@ -200,9 +201,10 @@ const investmentAsset = computed(() => {
 
 // 计算本月各个分类是否超支
 const overBudgetCategories = computed(() => {
+  const settingStore = useSettingStore()
+  const startDay = settingStore.billingStartDay
   const now = new Date()
-  const currentMonth = now.getMonth()
-  const currentYear = now.getFullYear()
+  const { start, end } = getCustomBillingMonthRange(now, startDay)
   
   // 仅计算本月的支出
   const monthRecords = store.currentLedgerRecords.filter(r => {
@@ -211,8 +213,7 @@ const overBudgetCategories = computed(() => {
       const acc = accountStore.accounts.find(a => a.id === r.accountId)
       if (acc && acc.type === 4) return false
     }
-    const d = new Date(r.recordTime)
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+    return r.recordTime >= start && r.recordTime <= end
   })
 
   // 按分类汇总

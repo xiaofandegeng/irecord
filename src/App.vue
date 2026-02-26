@@ -5,6 +5,7 @@ import { showNotify } from 'vant'
 import { useRecurringStore } from '@/stores/recurring'
 import { useSettingStore } from '@/stores/setting'
 import OmniCommandPanel from '@/components/OmniCommandPanel.vue'
+import PasscodeLock from '@/components/PasscodeLock.vue'
 import { playHaptic } from '@/utils/haptics'
 
 const activeTab = ref(0)
@@ -66,6 +67,9 @@ const showFooter = computed(() => {
       <!-- 全局悬浮的自然语言速记面板 -->
       <OmniCommandPanel />
     </template>
+    
+    <!-- 全局防窥屏密码锁 -->
+    <PasscodeLock />
   </div>
 </template>
 

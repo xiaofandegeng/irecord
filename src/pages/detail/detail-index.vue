@@ -4,8 +4,8 @@
       <div class="title-bar">
         <div class="title">账务明细</div>
         <div class="actions">
-          <span class="batch-btn" @click="toggleBatchMode" v-if="viewMode === 'list'">{{ isBatchMode ? '完成' : '管理' }}</span>
-          <van-icon :name="viewMode === 'list' ? 'calendar-o' : 'orders-o'" size="20" class="action-icon" @click="toggleViewMode" />
+          <span class="batch-btn" @click="toggleBatchMode">{{ isBatchMode ? '完成' : '管理' }}</span>
+          <van-icon name="calendar-o" size="20" class="action-icon" @click="router.push('/calendar-index')" />
           <van-icon name="search" size="20" class="action-icon" @click="goSearch" />
         </div>
       </div>
@@ -23,7 +23,7 @@
     </div>
 
     <!-- 列表视图 -->
-    <div class="list-area" v-if="viewMode === 'list'">
+    <div class="list-area">
       <transition-group name="list" tag="div" class="list-wrapper" v-if="Object.keys(groupedRecords).length > 0">
         <div v-for="(records, dateKey) in groupedRecords" :key="dateKey" class="date-card">
           <div class="date-card-header">
@@ -98,14 +98,8 @@
       <div class="bottom-padding"></div>
     </div>
 
-    <!-- 日历视图 / 活跃热力图 -->
-    <div class="calendar-area" v-else>
-      <ContributionHeatmap :grouped-records="groupedRecords" />
-      <div class="bottom-padding"></div>
-    </div>
-
     <!-- 批量操作底栏 -->
-    <van-action-bar v-if="isBatchMode && viewMode === 'list'" class="batch-action-bar">
+    <van-action-bar v-if="isBatchMode" class="batch-action-bar">
       <van-action-bar-button type="default" :text="selectedRecordIds.length === allRecords.length ? '取消全选' : '全选'" @click="selectAll" />
       <van-action-bar-button type="warning" text="修改分类" @click="showBatchCategoryPicker = true" :disabled="selectedRecordIds.length === 0" />
       <van-action-bar-button type="danger" text="删除" @click="onBatchDelete" :disabled="selectedRecordIds.length === 0" />
@@ -130,14 +124,11 @@ import { useRouter } from 'vue-router'
 import { showConfirmDialog, showImagePreview, showToast } from 'vant'
 import { useRecordStore, type RecordItem } from '@/stores/record'
 import { useAccountStore } from '@/stores/account'
-import ContributionHeatmap from '@/components/ContributionHeatmap.vue'
 import { playHaptic } from '@/utils/haptics'
 
 const store = useRecordStore()
 const accountStore = useAccountStore()
 const router = useRouter()
-
-const viewMode = ref<'list' | 'calendar'>('list')
 const isBatchMode = ref(false)
 const selectedRecordIds = ref<string[]>([])
 
@@ -237,9 +228,7 @@ const onConfirmRefund = () => {
   }
 }
 
-const toggleViewMode = () => {
-  viewMode.value = viewMode.value === 'list' ? 'calendar' : 'list'
-}
+
 
 const goSearch = () => {
   router.push('/search')

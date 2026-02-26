@@ -22,6 +22,11 @@
             :class="{ active: recordType === 2 }" 
             @click="recordType = 2"
           >收入</div>
+          <div 
+            class="pill-item" 
+            :class="{ active: recordType === 3 }" 
+            @click="recordType = 3"
+          >转账</div>
         </div>
         
         <div class="right-placeholder">
@@ -30,46 +35,71 @@
       </div>
     </div>
 
-    <!-- 中间：分类滚动区 -->
+    <!-- 中间：分类滚动区 或 转账账户区 -->
     <div class="category-scroll-area">
-      <!-- 如果有模板，也可以像 tags 一样横向滑动展现在顶部 -->
-      <div class="template-bar" v-if="currentTypeTemplates.length > 0">
-        <div class="template-scroll">
-          <van-tag
-            v-for="tpl in currentTypeTemplates"
-            :key="tpl.id"
-            round type="primary" plain closeable
-            @click="applyTemplate(tpl)"
-            @close.stop="onDeleteTemplate(tpl)"
-            class="tpl-tag"
-          >
-            {{ tpl.name }}
-          </van-tag>
+      <template v-if="recordType !== 3">
+        <!-- 如果有模板，也可以像 tags 一样横向滑动展现在顶部 -->
+        <div class="template-bar" v-if="currentTypeTemplates.length > 0">
+          <div class="template-scroll">
+            <van-tag
+              v-for="tpl in currentTypeTemplates"
+              :key="tpl.id"
+              round type="primary" plain closeable
+              @click="applyTemplate(tpl)"
+              @close.stop="onDeleteTemplate(tpl)"
+              class="tpl-tag"
+            >
+              {{ tpl.name }}
+            </van-tag>
+          </div>
         </div>
-      </div>
 
-      <div class="category-grid">
-        <div 
-          v-for="cat in currentCategories" 
-          :key="cat.id"
-          class="category-item"
-          :class="{ active: selectedCategoryId === cat.id }"
-          @click="selectCategory(cat.id)"
-        >
-          <div class="icon-wrap">
-            <van-icon :name="cat.icon" size="26" />
+        <div class="category-grid">
+          <div 
+            v-for="cat in currentCategories" 
+            :key="cat.id"
+            class="category-item"
+            :class="{ active: selectedCategoryId === cat.id }"
+            @click="selectCategory(cat.id)"
+          >
+            <div class="icon-wrap">
+              <van-icon :name="cat.icon" size="26" />
+            </div>
+            <span class="name">{{ cat.name }}</span>
           </div>
-          <span class="name">{{ cat.name }}</span>
-        </div>
-        
-        <!-- 管理分类入口 -->
-        <div class="category-item" @click="openCategoryManage">
-          <div class="icon-wrap dashed-wrap">
-            <van-icon name="setting-o" size="24" />
+          
+          <!-- 管理分类入口 -->
+          <div class="category-item" @click="openCategoryManage">
+            <div class="icon-wrap dashed-wrap">
+              <van-icon name="setting-o" size="24" />
+            </div>
+            <span class="name text-secondary">设置</span>
           </div>
-          <span class="name text-secondary">设置</span>
         </div>
-      </div>
+      </template>
+
+      <!-- 转账特有界面 -->
+      <template v-else>
+        <div class="transfer-accounts-wrapper">
+          <div class="transfer-account-item" @click="showAccountPicker = true">
+            <span class="label text-secondary">转出账户</span>
+            <div class="value-wrap">
+              <span class="value" :style="{ color: currentAccount?.color || '#333' }">{{ currentAccount?.name || '选择账户' }}</span>
+              <van-icon name="arrow" color="#ccc" />
+            </div>
+          </div>
+          <div class="transfer-swap-icon" @click="swapAccounts">
+            <van-icon name="exchange" size="28" color="var(--van-primary-color)" />
+          </div>
+          <div class="transfer-account-item" @click="showToAccountPicker = true">
+            <span class="label text-secondary">转入账户</span>
+            <div class="value-wrap">
+              <span class="value" :style="{ color: currentToAccount?.color || '#333' }">{{ currentToAccount?.name || '选择账户' }}</span>
+              <van-icon name="arrow" color="#ccc" />
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
 
     <!-- 底部：固定操作与键盘区 -->
@@ -80,7 +110,7 @@
           <van-icon name="clock-o" />
           <span>{{ displayDate }}</span>
         </div>
-        <div class="tool-pill" @click="showAccountPicker = true">
+        <div class="tool-pill" @click="showAccountPicker = true" v-if="recordType !== 3">
           <van-icon name="gold-coin-o" />
           <span>{{ currentAccount?.name || '选择账户' }}</span>
         </div>
@@ -117,10 +147,13 @@
       <!-- 核心栏: 类别、备注与金额展示 -->
       <div class="input-bar">
         <div class="selected-cat">
-          <div class="icon-indicator">
+          <div class="icon-indicator" v-if="recordType !== 3">
             <van-icon :name="selectedCategoryData?.icon || 'apps-o'" size="20" />
           </div>
-          <span class="name">{{ selectedCategoryData?.name || '默认' }}</span>
+          <div class="icon-indicator transfer" v-else>
+            <van-icon name="exchange" size="20" />
+          </div>
+          <span class="name">{{ recordType === 3 ? '内部转账' : (selectedCategoryData?.name || '默认') }}</span>
         </div>
         
         <div class="remark-wrapper">
@@ -144,7 +177,8 @@
 
     <!-- 各种弹出层与联动组件 -->
     <van-calendar v-model:show="showCalendar" @confirm="onConfirmDate" :min-date="minDate" :max-date="maxDate" color="var(--van-primary-color)" />
-    <van-action-sheet v-model:show="showAccountPicker" :actions="accountActions" cancel-text="取消" @select="onSelectAccount" />
+    <van-action-sheet v-model:show="showAccountPicker" :actions="accountActions" cancel-text="取消" @select="onSelectAccount" title="选择转出账户" />
+    <van-action-sheet v-model:show="showToAccountPicker" :actions="toAccountActions" cancel-text="取消" @select="onSelectToAccount" title="选择转入账户" />
     <van-action-sheet v-model:show="showLedgerPicker" :actions="ledgerActions" cancel-text="取消" @select="onSelectLedger" />
     <van-action-sheet v-model:show="showGoalPicker" :actions="goalActions" cancel-text="不存入任何心愿单" @select="onSelectGoal" @cancel="onCancelGoal" />
     <van-dialog v-model:show="showSaveTemplate" title="存为快速记账模板" show-cancel-button @confirm="onConfirmSaveTemplate">
@@ -166,6 +200,7 @@ import { useLedgerStore } from '@/stores/ledger'
 import { useGoalStore } from '@/stores/goal'
 import { useTemplateStore, type TemplateItem } from '@/stores/template'
 import CustomKeyboard from '@/components/CustomKeyboard.vue'
+import { playHaptic } from '@/utils/haptics'
 
 dayjs.extend(isToday)
 
@@ -177,7 +212,7 @@ const templateStore = useTemplateStore()
 const router = useRouter()
 
 // 状态
-const recordType = ref<1 | 2>(1)
+const recordType = ref<1 | 2 | 3>(1)
 const amountVal = ref('0')
 const remark = ref('')
 const selectedCategoryId = ref('')
@@ -224,6 +259,34 @@ const accountActions = computed(() => accountStore.accounts.map(a => ({
   name: a.name, value: a.id, color: selectedAccountId.value === a.id ? 'var(--van-primary-color)' : undefined
 })))
 
+const currentAccount = computed(() => accountStore.accounts.find(a => a.id === selectedAccountId.value))
+const onSelectAccount = (action: any) => {
+  selectedAccountId.value = action.value
+  showAccountPicker.value = false
+}
+
+// 转账专用：转入账户
+const selectedToAccountId = ref('a2')
+const showToAccountPicker = ref(false)
+
+const toAccountActions = computed(() => accountStore.accounts.map(a => ({
+  name: a.name, value: a.id, color: selectedToAccountId.value === a.id ? 'var(--van-primary-color)' : undefined
+})))
+
+const currentToAccount = computed(() => accountStore.accounts.find(a => a.id === selectedToAccountId.value))
+const onSelectToAccount = (action: any) => {
+  selectedToAccountId.value = action.value
+  showToAccountPicker.value = false
+}
+
+const swapAccounts = () => {
+    playHaptic('light')
+    const temp = selectedAccountId.value
+    selectedAccountId.value = selectedToAccountId.value
+    selectedToAccountId.value = temp
+}
+
+// 账本及币种
 const showLedgerPicker = ref(false)
 const ledgerActions = computed(() => ledgerStore.ledgers.map(l => ({
   name: l.name, value: l.id, color: ledgerStore.currentLedgerId === l.id ? 'var(--van-primary-color)' : undefined
@@ -252,12 +315,6 @@ const onSelectCurrency = (action: any) => {
   selectedCurrency.value = action.value
   exchangeRate.value = action.defaultRate
   showCurrencyPicker.value = false
-}
-
-const currentAccount = computed(() => accountStore.accounts.find(a => a.id === selectedAccountId.value))
-const onSelectAccount = (action: any) => {
-  selectedAccountId.value = action.value
-  showAccountPicker.value = false
 }
 
 // 心愿单
@@ -345,19 +402,27 @@ const submitRecord = () => {
     showToast('请输入有效金额')
     return
   }
-  if (!selectedCategoryId.value) {
+  if (recordType.value !== 3 && !selectedCategoryId.value) {
     showToast('请选择分类')
     return
   }
+  if (recordType.value === 3) {
+    if (selectedAccountId.value === selectedToAccountId.value) {
+      showToast('转出和转入账户不能相同')
+      return
+    }
+  }
+
   selectedTags.value.forEach(t => store.addTag(t))
 
   store.addRecord({
     type: recordType.value,
     amount: amount,
-    categoryId: selectedCategoryId.value,
+    categoryId: recordType.value === 3 ? 'transfer' : selectedCategoryId.value,
     accountId: selectedAccountId.value, 
+    toAccountId: recordType.value === 3 ? selectedToAccountId.value : undefined,
     recordTime: selectedDate.value.getTime(),
-    remark: remark.value,
+    remark: remark.value || (recordType.value === 3 ? '内部转账' : ''),
     tags: [...selectedTags.value],
     goalId: recordType.value === 1 && selectedGoalId.value ? selectedGoalId.value : undefined,
     reimbursable: recordType.value === 1 ? isReimbursable.value : undefined,
@@ -422,7 +487,7 @@ const submitRecord = () => {
           flex: 1;
           text-align: center;
           padding: 6px 0;
-          font-size: 15px;
+          font-size: 14px;
           border-radius: 6px;
           color: var(--text-color-secondary);
           transition: all 0.2s ease;
@@ -438,7 +503,7 @@ const submitRecord = () => {
     }
   }
 
-  /* === Middle Category Grid === */
+  /* === Middle Category Grid / Transfer === */
   .category-scroll-area {
     flex: 1;
     overflow-y: auto;

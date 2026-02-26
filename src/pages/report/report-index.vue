@@ -140,6 +140,8 @@ import InsightCard from '@/components/InsightCard.vue'
 import { showImagePreview, showToast, showLoadingToast } from 'vant'
 import html2canvas from 'html2canvas'
 import { useRecordStore, type RecordItem } from '@/stores/record'
+import { useSettingStore } from '@/stores/setting'
+import { getCustomBillingMonthRange } from '@/utils/date'
 import { useAccountStore } from '@/stores/account'
 import ChartPie from '@/components/ChartPie.vue'
 import ChartLine from '@/components/ChartLine.vue'
@@ -220,8 +222,12 @@ const filteredRecords = computed(() => {
 
     const d = new Date(r.recordTime)
     if (dateType.value === 'month') {
+      const settingStore = useSettingStore()
+      const startDay = settingStore.billingStartDay
       const [year, month] = pickerValue.value
-      return String(d.getFullYear()) === year && String(d.getMonth() + 1).padStart(2, '0') === month
+      const refDate = new Date(Number(year), Number(month) - 1, 1)
+      const { start, end } = getCustomBillingMonthRange(refDate, startDay)
+      return r.recordTime >= start && r.recordTime <= end
     } else {
       const [year] = pickerValue.value
       return String(d.getFullYear()) === year
@@ -250,8 +256,12 @@ const rankedData = computed(() => [...chartData.value].sort((a, b) => b.value - 
 
 const lineXAxisData = computed(() => {
   if (dateType.value === 'month') {
+    const settingStore = useSettingStore()
+    const startDay = settingStore.billingStartDay
     const [yearStr, monthStr] = pickerValue.value
-    const days = new Date(Number(yearStr), Number(monthStr), 0).getDate()
+    const refDate = new Date(Number(yearStr), Number(monthStr) - 1, 1)
+    const { start, end } = getCustomBillingMonthRange(refDate, startDay)
+    const days = Math.round((end - start) / (1000 * 60 * 60 * 24))
     return Array.from({ length: days }, (_, i) => `${i + 1}日`)
   } else {
     return Array.from({ length: 12 }, (_, i) => `${i + 1}月`)
@@ -260,12 +270,21 @@ const lineXAxisData = computed(() => {
 
 const lineSeriesData = computed(() => {
   const data = new Array(lineXAxisData.value.length).fill(0)
+  
+  const settingStore = useSettingStore()
+  const startDay = settingStore.billingStartDay
+  const [yearStr, monthStr] = pickerValue.value
+  const refDate = new Date(Number(yearStr), Number(monthStr) - 1, 1)
+  const { start } = getCustomBillingMonthRange(refDate, startDay)
+
   filteredRecords.value.forEach(r => {
     const d = new Date(r.recordTime)
     const convertedAmount = r.amount * (r.exchangeRate || 1)
     if (dateType.value === 'month') {
-      const dayIndex = d.getDate() - 1
-      data[dayIndex] += convertedAmount
+      const dayIndex = Math.floor((r.recordTime - start) / (1000 * 60 * 60 * 24))
+      if (dayIndex >= 0 && dayIndex < data.length) {
+        data[dayIndex] += convertedAmount
+      }
     } else {
       const monthIndex = d.getMonth()
       data[monthIndex] += convertedAmount
