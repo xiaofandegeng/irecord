@@ -190,7 +190,16 @@
     </van-popup>
 
     <!-- 各种弹出层与联动组件 -->
-    <van-calendar v-model:show="showCalendar" @confirm="onConfirmDate" :min-date="minDate" :max-date="maxDate" color="var(--van-primary-color)" />
+    <van-popup v-model:show="showCalendar" position="bottom" round>
+      <van-date-picker
+        v-model="currentDateArr"
+        title="选择记账日期"
+        :min-date="minDate"
+        :max-date="maxDate"
+        @confirm="onConfirmDate"
+        @cancel="showCalendar = false"
+      />
+    </van-popup>
     <van-action-sheet v-model:show="showAccountPicker" :actions="accountActions" cancel-text="取消" @select="onSelectAccount" title="选择转出账户" />
     <van-action-sheet v-model:show="showToAccountPicker" :actions="toAccountActions" cancel-text="取消" @select="onSelectToAccount" title="选择转入账户" />
     <van-action-sheet v-model:show="showLedgerPicker" :actions="ledgerActions" cancel-text="取消" @select="onSelectLedger" />
@@ -255,13 +264,27 @@ const selectedDate = ref<Date>(new Date())
 const minDate = new Date(2010, 0, 1)
 const maxDate = new Date()
 
+const currentDateArr = ref([
+  String(selectedDate.value.getFullYear()), 
+  String(selectedDate.value.getMonth() + 1).padStart(2, '0'), 
+  String(selectedDate.value.getDate()).padStart(2, '0')
+])
+
+watch(selectedDate, (newVal) => {
+  currentDateArr.value = [
+    String(newVal.getFullYear()), 
+    String(newVal.getMonth() + 1).padStart(2, '0'), 
+    String(newVal.getDate()).padStart(2, '0')
+  ]
+})
+
 const displayDate = computed(() => {
   if (dayjs(selectedDate.value).isToday()) return '今天'
   return dayjs(selectedDate.value).format('MM-DD')
 })
 
-const onConfirmDate = (date: Date) => {
-  selectedDate.value = date
+const onConfirmDate = ({ selectedValues }: any) => {
+  selectedDate.value = new Date(Number(selectedValues[0]), Number(selectedValues[1]) - 1, Number(selectedValues[2]))
   showCalendar.value = false
 }
 
